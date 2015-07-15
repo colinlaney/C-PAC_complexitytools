@@ -46,7 +46,7 @@ class InformationTheory(wx.ScrolledWindow):
                  name='runIT', 
                  type=dtype.LSTR, 
                  comment="Run Information Theory Measures", 
-                 values=["Off","On","On/Off"],
+                 values=["Off","On"],
                  wkf_switch = True)
                  
         self.page.add(label="Voxelwise / ROI extraction", 
@@ -84,15 +84,7 @@ class InformationTheory(wx.ScrolledWindow):
                                  "ecc = Entropy Correlation Coefficient\n",
                      size = (300,120),
                      combo_type =1)
-                    
-        self.page.add(label= "CompCor Components ",
-                      control = control.TEXT_BOX,
-                      name = "nComponents",
-                      type = dtype.LNUM,
-                      values = "5",
-                      validator = CharValidator("no-alpha"),
-                      comment = "Number of Principle Components to calculate when running CompCor. We recommend 5 or 6.")
-
+     
         self.page.add(label="Output Options ",
                       control=control.CHECKLIST_BOX,
                       name="measure_options",
@@ -121,7 +113,7 @@ class Causality(wx.ScrolledWindow):
                  name='runCausality', 
                  type=dtype.LSTR, 
                  comment="Granger Causality", 
-                 values=["Off","On","On/Off"],
+                 values=["Off","On"],
                  wkf_switch = True)
         
 
