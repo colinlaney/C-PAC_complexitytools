@@ -13,7 +13,7 @@ from .filtering import Filtering, FilteringSettings
 from .timeseries import TimeSeries, ROITimeseries, VOXELTimeseries, SpatialRegression, GenerateSeeds, VerticesTimeSeries
 from .group_analysis import GroupAnalysis, GPASettings, BASCSettings, BASC, CWAS, CWASSettings
 from .dualreg import DualRegression, DualRegressionOptions
-#from .nonlinearts import NonLinearTimeSeriesAnalysis, InformationTheory, Causality
+from .nonlinearts import NonLinearTimeSeriesAnalysis, InformationTheory, Causality
 
 
 
