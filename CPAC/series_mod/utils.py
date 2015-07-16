@@ -9,13 +9,18 @@
 #matshow(MI_mat);colorbar();clim(0,np.max(MI_mat));show()
 
 
-def compute_ROI_corr(in_file, mask_file):
+def compute_ROI_corr(in_file, mask_file = 0, voxelwise = 0):
 
     from CPAC.series_mod import gen_roi_timeseries
+    from CPAC.series_mod import gen_voxel_timeseries
     from CPAC.series_mod import corr  
     import numpy as np
     
-    ROI_data = gen_roi_timeseries(in_file, mask_file)
+    if voxelwise ==0:
+        ROI_data = gen_roi_timeseries(in_file, mask_file)
+    else:
+        ROI_data = gen_voxel_timeseries(in_file)
+            
     corr_mat = corr(ROI_data)
     
     np.savetxt(in_file[:-7]+'_corr.txt', corr_mat)
@@ -31,13 +36,19 @@ def compute_ROI_corr(in_file, mask_file):
 
     return corr_mat
     
-def compute_ROI_pcorr(in_file, mask_file):
+def compute_ROI_pcorr(in_file, mask_file = 0, voxelwise = 0):
 
     from CPAC.series_mod import gen_roi_timeseries
+    from CPAC.series_mod import gen_voxel_timeseries    
     from CPAC.series_mod import partial_corr  
     import numpy as np
     
-    ROI_data = gen_roi_timeseries(in_file, mask_file)
+    if voxelwise ==0:
+        ROI_data = gen_roi_timeseries(in_file, mask_file)
+    else:
+        ROI_data = gen_voxel_timeseries(in_file)
+ 
+    
     pcorr_mat = partial_corr(ROI_data)
     
     np.savetxt(in_file[:-7]+'partial_corr.txt', pcorr_mat)
@@ -45,17 +56,19 @@ def compute_ROI_pcorr(in_file, mask_file):
 
     return pcorr_mat    
     
-def compute_MI(in_file, mask_file):
+def compute_MI(in_file, mask_file = 0, voxelwise = 0):
 
     from CPAC.series_mod import gen_roi_timeseries
+    from CPAC.series_mod import gen_voxel_timeseries
     from CPAC.series_mod import transform
     from CPAC.series_mod import mutual_information
     import numpy as np
     import math
-    
 
-
-    ROI_data = gen_roi_timeseries(in_file, mask_file)    
+    if voxelwise ==0:
+        ROI_data = gen_roi_timeseries(in_file, mask_file)
+    else:
+        ROI_data = gen_voxel_timeseries(in_file) 
     
     n_var = ROI_data.shape[0]
     points = ROI_data.shape[1]
@@ -81,17 +94,19 @@ def compute_MI(in_file, mask_file):
 
     return MI_mat
     
-def compute_TE(in_file, mask_file):
+def compute_TE(in_file, mask_file = 0, voxelwise = 0):
 
     from CPAC.series_mod import gen_roi_timeseries
+    from CPAC.series_mod import gen_voxel_timeseries
     from CPAC.series_mod import transform
     from CPAC.series_mod import transfer_entropy
     import numpy as np
     import math
     
-
-
-    ROI_data = gen_roi_timeseries(in_file, mask_file)    
+    if voxelwise ==0:
+        ROI_data = gen_roi_timeseries(in_file, mask_file)
+    else:
+        ROI_data = gen_voxel_timeseries(in_file)  
     
     n_var = ROI_data.shape[0]
     points = ROI_data.shape[1]
@@ -205,6 +220,7 @@ def gen_roi_timeseries(in_file, mask_file):
     data_array = ROI_number * timepoints
 
     """
+    import os
     import numpy as np    
     import nibabel as nb
     
@@ -216,7 +232,20 @@ def gen_roi_timeseries(in_file, mask_file):
     # Cast as rounded-up integer
     mask_data = np.int64(np.ceil(mask_data)) #ROI numbers, int64 is enough
 
-    if mask_data.shape != img_data.shape[:3]:
+#    if mask_data.shape != img_data.shape[:3]:
+#        os.system("antsRegistration --collapse-output-transforms 0 --dimensionality 3 --initial-moving-transform [ %s, %s, 0 ] --interpolation Linear --output [ transform, transform_Warped.nii.gz ] --transform Rigid[ 0.1 ] --metric MI[ %s, %s, 1, 32, Regular, 0.25 ] --convergence [ 1000x500x250x100, 1e-08, 10 ] --smoothing-sigmas 3.0x2.0x1.0x0.0 --shrink-factors 8x4x2x1 --use-histogram-matching 1 --transform Affine[ 0.1 ] --metric MI[ %s, %s, 1, 32, Regular, 0.25 ] --convergence [ 1000x500x250x100, 1e-08, 10 ] --smoothing-sigmas 3.0x2.0x1.0x0.0 --shrink-factors 8x4x2x1 --use-histogram-matching 1 --transform SyN[ 0.1, 3.0, 0.0 ] --metric CC[ %s, %s, 1, 4 ] --convergence [ 100x100x70x20, 1e-09, 15 ] --smoothing-sigmas 3.0x2.0x1.0x0.0 --shrink-factors 6x4x2x1 --use-histogram-matching 1 --winsorize-image-intensities [ 0.01, 0.99 ]" % (reference_brain, anatomical_brain, reference_brain, anatomical_brain, reference_brain, anatomical_brain, reference_skull, anatomical_skull))
+#    
+#        warp_list = []
+#    
+#        files = [f for f in os.listdir('.') if os.path.isfile(f)]
+#    
+#        for f in files:
+#    
+#            if ("transform" in f) and ("Warped" not in f):
+#                warp_list.append(os.getcwd() + "/" + f)
+#    
+#            if "Warped" in f:
+#                warped_image = os.getcwd() + "/" + f     
         raise Exception('Invalid Shape Error.'\
                         'Please check the voxel dimensions.'\
                         'Data and roi should have'\

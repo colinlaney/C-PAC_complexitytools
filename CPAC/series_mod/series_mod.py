@@ -66,6 +66,7 @@ def create_ROI_corr():
     --------
     >>> from CPAC import series_mod
     >>> wf = series_mod.create_ROI_corr()
+    >>> wf.inputs.inputspec.voxelwise = 0
     >>> wf.inputs.inputspec.in_file = '/home/data/Project/subject/func/in_file.nii.gz'
     >>> wf.inputs.inputspec.mask_file = '/home/data/Project/subject/func/mask.nii.gz'
     >>> wf.run()
@@ -86,7 +87,8 @@ def create_ROI_corr():
     ROI_corr = pe.Workflow(name='ROI_corr')
     inputNode = pe.Node(util.IdentityInterface(fields=[
                                                 'in_file',
-                                                'mask_file'
+                                                'mask_file',
+                                                'voxelwise'
                                                 ]),
                         name='inputspec')
 
@@ -187,7 +189,8 @@ def create_ROI_pcorr():
     ROI_pcorr = pe.Workflow(name='ROI_pcorr')
     inputNode = pe.Node(util.IdentityInterface(fields=[
                                                 'in_file',
-                                                'mask_file'
+                                                'mask_file',
+                                                'voxelwise'
                                                 ]),
                         name='inputspec')
 
@@ -285,7 +288,8 @@ def create_MI():
     MI = pe.Workflow(name='MI_comp')
     inputNode = pe.Node(util.IdentityInterface(fields=[
                                                 'in_file',
-                                                'mask_file'
+                                                'mask_file',
+                                                'voxelwise'
                                                 ]),
                         name='inputspec')
 
@@ -381,7 +385,8 @@ def create_TE():
     TE = pe.Workflow(name='TE_comp')
     inputNode = pe.Node(util.IdentityInterface(fields=[
                                                 'in_file',
-                                                'mask_file'
+                                                'mask_file',
+                                                'voxelwise'
                                                 ]),
                         name='inputspec')
 
