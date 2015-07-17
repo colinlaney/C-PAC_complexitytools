@@ -17,7 +17,9 @@ from utils import compute_ROI_corr, \
             cond_entropy, \
             entropy_cc, \
             transfer_entropy, \
-            compute_TE
+            compute_TE, \
+            phase_sync, \
+            PLV
             
 from mvgc import autocov_to_mvgc, \
             autocov_to_pwcgc, \
@@ -32,4 +34,4 @@ __all__ = ['create_ROI_corr','create_ROI_pcorr','create_MI', \
             'entropy','mutual_information','cond_entropy', \
             'entropy_cc','transfer_entropy','autocov_to_mvgc', \
             'autocov_to_pwcgc','autocov_to_var','tsdata_to_autocov', \
-            'compute_TE'] # , \
+            'compute_TE', 'phase_sync', 'PLV'] # , \
