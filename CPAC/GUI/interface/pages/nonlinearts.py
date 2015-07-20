@@ -40,9 +40,9 @@ class Preanalysis(wx.ScrolledWindow):
         self.counter = counter
 
         
-        self.page = GenericClass(self, "Information Theory Calculation Options")
+        self.page = GenericClass(self, "Preanalysis Measures Calculation Options")
         
-        self.page.add(label="Run Timseries Preanalysis Measures", 
+        self.page.add(label="Run Timeseries Preanalysis Measures", 
                  control=control.CHOICE_BOX, 
                  name='runPre', 
                  type=dtype.LSTR, 
@@ -55,7 +55,7 @@ class Preanalysis(wx.ScrolledWindow):
                  name='voxel_roi', 
                  type=dtype.LSTR, 
                  comment="Run Information Theory Measures voxelwise or after ROI timeseries extraction", 
-                 values=["Voxelwise","ROI","Voxelwise/ROI"],
+                 values=["Voxelwise","ROI"],
                  wkf_switch = True)         
         
         self.page.add(label="fMRI image", 
@@ -123,7 +123,7 @@ class IT(wx.ScrolledWindow):
                  name='voxel_roi', 
                  type=dtype.LSTR, 
                  comment="Run Information Theory Measures voxelwise or after ROI timeseries extraction", 
-                 values=["Voxelwise","ROI","Voxelwise/ROI"],
+                 values=["Voxelwise","ROI"],
                  wkf_switch = True)         
         
         self.page.add(label="fMRI image", 
@@ -177,14 +177,54 @@ class SFD(wx.ScrolledWindow):
         
         self.page = GenericClass(self, "Scale Free Dynamics")
         
-        self.page.add(label="Run DFA", 
+        self.page.add(label="Run SFD measures", 
                  control=control.CHOICE_BOX, 
                  name='runCausality', 
                  type=dtype.LSTR, 
-                 comment="Detrended Fluctuation Analysis", 
+                 comment="Scale free dynamics", 
                  values=["Off","On"],
                  wkf_switch = True)
+                 
+        self.page.add(label="Voxelwise / ROI extraction", 
+                 control=control.CHOICE_BOX, 
+                 name='voxel_roi', 
+                 type=dtype.LSTR, 
+                 comment="Run Information Theory Measures voxelwise or after ROI timeseries extraction", 
+                 values=["Voxelwise","ROI"],
+                 wkf_switch = True)         
         
+        self.page.add(label="fMRI image", 
+                     control=control.COMBO_BOX, 
+                     name='input_image', 
+                     type=dtype.STR, 
+                     comment="fMRI image for calculation")
+       
+        self.page.add(label="Parcellation Mask", 
+                     control=control.COMBO_BOX, 
+                     name='input_mask', 
+                     type=dtype.STR, 
+                     comment="Parcellation Mask if you want to calculate")         
+                 
+        self.page.add(label = "Measures:",
+                      #control = control.CHECKLISTBOX_COMBO,
+                      control = control.LISTBOX_COMBO,
+                      name = "Measures",
+                      type = dtype.LDICT,
+                      values = ['DFA', 'Fractality','Mutual Information','Avalanches'],
+                      comment = "Select which IT measures to apply:\n"\
+                                "dfa = Detrended Fluctuation Analysis\n"\
+                                 "fractal = Fractality\n"\
+                                 "aval = Avalanches\n",
+                     size = (300,120),
+                     combo_type =1)         
+        
+        self.page.add(label="Output Options ",
+                      control=control.CHECKLIST_BOX,
+                      name="measure_options",
+                      type=dtype.LBOOL,
+                      values=['CSV', 'NUMPY','NIFTI'],
+                      comment="By default, results are written as NIFTI files. Additional output formats are as a .csv spreadsheet or a Numpy array.")
+
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
