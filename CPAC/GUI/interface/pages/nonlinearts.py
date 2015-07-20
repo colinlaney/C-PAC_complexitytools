@@ -29,8 +29,77 @@ class NonLinearTimeSeriesAnalysis(wx.html.HtmlWindow):
             
     def get_counter(self):
         return self.counter
+
+        
+class Preanalysis(wx.ScrolledWindow):
+    
+    def __init__(self, parent, counter = 0):
+        wx.ScrolledWindow.__init__(self, parent)
+                
+        
+        self.counter = counter
+
+        
+        self.page = GenericClass(self, "Information Theory Calculation Options")
+        
+        self.page.add(label="Run Timseries Preanalysis Measures", 
+                 control=control.CHOICE_BOX, 
+                 name='runPre', 
+                 type=dtype.LSTR, 
+                 comment="Run Timseries Preanalysis Measures", 
+                 values=["Off","On"],
+                 wkf_switch = True)
+                 
+        self.page.add(label="Voxelwise / ROI extraction", 
+                 control=control.CHOICE_BOX, 
+                 name='voxel_roi', 
+                 type=dtype.LSTR, 
+                 comment="Run Information Theory Measures voxelwise or after ROI timeseries extraction", 
+                 values=["Voxelwise","ROI","Voxelwise/ROI"],
+                 wkf_switch = True)         
+        
+        self.page.add(label="fMRI image", 
+                     control=control.COMBO_BOX, 
+                     name='input_image', 
+                     type=dtype.STR, 
+                     comment="fMRI image for calculation")
+       
+        self.page.add(label="Parcellation Mask", 
+                     control=control.COMBO_BOX, 
+                     name='input_mask', 
+                     type=dtype.STR, 
+                     comment="Parcellation Mask if you want to calculate")
+
+
+        self.page.add(label = "Measures:",
+                      #control = control.CHECKLISTBOX_COMBO,
+                      control = control.LISTBOX_COMBO,
+                      name = "Measures",
+                      type = dtype.LDICT,
+                      values = ['Correlation', 'Partial Correlation','Phase Syncrhonization Index','Phase Locking Value'],
+                      comment = "Select which preanalysis measures to apply:\n"\
+                                "corr = Entropy\n"\
+                                 "pcorr = Conditional Entropy\n"\
+                                 "PSI = Phase Syncrhonization Index\n"\
+                                 "PLV = Phase Locking Value\n",
+                     size = (300,120),
+                     combo_type =1)
+     
+        self.page.add(label="Output Options ",
+                      control=control.CHECKLIST_BOX,
+                      name="measure_options",
+                      type=dtype.LBOOL,
+                      values=['CSV', 'NUMPY','NIFTI'],
+                      comment="By default, results are written as NIFTI files. Additional output formats are as a .csv spreadsheet or a Numpy array.")
+
+
+        self.page.set_sizer()
+        parent.get_page_list().append(self)
+        
+    def get_counter(self):
+            return self.counter
             
-class InformationTheory(wx.ScrolledWindow):
+class IT(wx.ScrolledWindow):
     
     def __init__(self, parent, counter = 0):
         wx.ScrolledWindow.__init__(self, parent)
@@ -99,20 +168,20 @@ class InformationTheory(wx.ScrolledWindow):
     def get_counter(self):
             return self.counter
         
-class Causality(wx.ScrolledWindow):
+class SFD(wx.ScrolledWindow):
     
     def __init__(self, parent, counter = 0):
         wx.ScrolledWindow.__init__(self, parent)
                 
         self.counter = counter
         
-        self.page = GenericClass(self, "Causality")
+        self.page = GenericClass(self, "Scale Free Dynamics")
         
-        self.page.add(label="Run Causality ", 
+        self.page.add(label="Run DFA", 
                  control=control.CHOICE_BOX, 
                  name='runCausality', 
                  type=dtype.LSTR, 
-                 comment="Granger Causality", 
+                 comment="Detrended Fluctuation Analysis", 
                  values=["Off","On"],
                  wkf_switch = True)
         
@@ -122,3 +191,4 @@ class Causality(wx.ScrolledWindow):
         
     def get_counter(self):
             return self.counter
+            
