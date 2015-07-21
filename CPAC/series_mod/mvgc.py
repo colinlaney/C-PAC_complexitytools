@@ -379,3 +379,52 @@ def autocov_to_var(G):
 
 
 
+def tsdata_to_var(X, p):
+
+    import numpy as np
+    from matplotlib import pylab
+    # Local Variables: A, M, p1, E, XL, m, k, n, p, SIG, np, X, X0, N
+    # Function calls: reshape, NaN, nargout, tsdata_to_var, demean, zeros, size, strcmpi
+    [n, m, N] = X.shape
+    #%assert(p < m,'too many lags');
+    p1 = p+1
+    
+    A = 0 #nan
+    #% assure a "bad" return value if anything goes wrong (see routine 'isbad')
+    SIG = 0#nan
+    E = 0#nan
+    
+    X = pylab.demean(X, axis=1)
+    #% no constant term
+
+    M = np.dot(N, m-p)
+    np = np.dot(n, p)
+    #% stack lags
+    X0 = np.reshape(X[:,int(p1)-1:m,:], n, M)
+    #% concatenate trials for unlagged observations
+    XL = np.zeros(n, p, M)
+    for k in np.arange(1., (p)+1):
+        XL[:,int(k)-1,:] = np.reshape(X[:,int(p1-k)-1:m-k,:], n, M)
+        #% concatenate trials for k-lagged observations
+        
+    XL = np.reshape(XL, np, M)
+    #% stack lags
+    np.linalg.lstsq(G0.T,GB.T)[0].T
+    A = matdiv(X0, XL)
+    # TRY THIS WITH MATLAB    
+    
+    #% OLS using QR decomposition
+    
+    E = X0-np.dot(A, XL)
+    #% residuals
+    np.linalg.lstsq(G0.T,GB.T)[0].T
+    SIG = matdiv(np.dot(E, E.conj().T), M-1.)
+    #% residuals covariance matrix
+    E = np.reshape(E, n, (m-p), N)
+    #% put residuals back into per-trial form
+    
+    
+    A = np.reshape(A, n, n, p)
+    #% so A(:,:,k) is the k-lag coefficients matrix
+    
+    return [A, SIG, E]
