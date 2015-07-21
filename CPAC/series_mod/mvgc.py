@@ -61,36 +61,17 @@
 # (C) Lionel Barnett and Anil K. Seth, 2012. 
 
 
-
-
-def tsdata_to_autocov(X, q):
+def pwcgc(tsdata, p):
     
     import numpy as np
-    from matplotlib import pylab
+    from series_mod import tsdata_to_var
 
-    if len(X.shape) == 2:
-        X = np.expand_dims(X, axis=2)
-        [n, m, N] = np.shape(X)
-    else:
-        [n, m, N] = np.shape(X)
 
-    X = pylab.demean(X, axis=1) ## This is correct
-    G = np.zeros((n, n, (q+1)))
-    
-    for k in range(q+1):
-        M = N * (m-k)
-        G[:,:,k] = np.dot(np.reshape(X[:,k:m,:], (n, M)), np.reshape(X[:,0:m-k,:], (n, M)).conj().T) / (M-1)
-    return G
-    
-def autocov_to_pwcgc(G):
-    
-    import numpy as np
-
-    n = G.shape[0]
+    n = tsdata.shape[0]
     F = np.zeros([n,n])
     
     # full regression   
-    [AF,SIG] = autocov_to_var(G)    
+    [AF,SIG,E] = tsdata_to_var(tsdata)    
     LSIG = np.log(abs(np.diag(SIG)))
     
     for j_ in range(n):
@@ -101,7 +82,7 @@ def autocov_to_pwcgc(G):
         jo = np.delete(jo,j_)
 
         ixgrid1 = np.ix_(jo,jo)
-        [AF,SIGj] = autocov_to_var(G[ixgrid1])
+        [AF,SIGj,E] = tsdata_to_var(tsdata[ixgrid1], p)
           
         LSIGj = np.log(abs(np.diag(SIGj)))
     
@@ -167,14 +148,14 @@ def autocov_to_pwcgc(G):
 #% installation directory for licensing terms.
 #%
 #%%
-def autocov_to_mvgc(G, x, y):
+def mvgc(tsdata, x, y, p):
     
     import numpy as np
-    from series_mod import autocov_to_var
+    from series_mod import tsdata_to_var
 
     # Local Variables: G, F, xzy, n, xz, SIGR, SIG, y, x, z
     # Function calls: autocov_to_var, log, det, NaN, length, autocov_to_mvgc, size
-    n = G.shape[0]
+    n = tsdata.shape[0]
     
     
      #WARNING PART 1!!
@@ -193,13 +174,13 @@ def autocov_to_mvgc(G, x, y):
     #% full regression
     #%owstate = warn_supp;
     ixgrid1 = np.ix_(xzy,xzy)
-    [AF,SIG] = autocov_to_var(G[ixgrid1]) #G[ixgrid1,:])
+    [AF,SIG,E] = tsdata_to_var(tsdata[ixgrid1], p) #G[ixgrid1,:])
     #%warn_test(owstate,    'in full regression - bad autocovariance matrix? Check output of ''var_info''');
     #%if warn_if(isbad(SIG),'in full regression - regression failed'), return; end % show-stopper!
     #% reduced regression
     #%owstate = warn_supp;
     ixgrid2 = np.ix_(xz,xz)
-    [AF,SIGR] = autocov_to_var(G[ixgrid2]) #G[ixgrid2,:])
+    [AF,SIGR,E] = tsdata_to_var(tsdata[ixgrid2], p) #G[ixgrid2,:])
     #% reduced regression
     #%warn_test(owstate,     'in reduced regression - bad autocovariance matrix? Check output of ''var_info''');
     #%if warn_if(isbad(SIGR),'in reduced regression - regression failed'), return; end % show-stopper!
@@ -214,7 +195,57 @@ def autocov_to_mvgc(G, x, y):
     return F
     
     
+  
+
+def tsdata_to_var(X, p):
+
+    import numpy as np
+    from matplotlib import pylab
+    # Local Variables: A, M, p1, E, XL, m, k, n, p, SIG, np, X, X0, N
+    # Function calls: reshape, NaN, nargout, tsdata_to_var, demean, zeros, size, strcmpi
+    [n, m, N] = X.shape
+    #%assert(p < m,'too many lags');
+    p1 = p+1
     
+    A = 0 #nan
+    #% assure a "bad" return value if anything goes wrong (see routine 'isbad')
+    SIG = 0#nan
+    E = 0#nan
+    
+    X = pylab.demean(X, axis=1)
+    #% no constant term
+
+    M = np.dot(N, m-p)
+    np = np.dot(n, p)
+    #% stack lags
+    X0 = np.reshape(X[:,int(p1)-1:m,:], n, M)
+    #% concatenate trials for unlagged observations
+    XL = np.zeros(n, p, M)
+    for k in np.arange(1., (p)+1):
+        XL[:,int(k)-1,:] = np.reshape(X[:,int(p1-k)-1:m-k,:], n, M)
+        #% concatenate trials for k-lagged observations
+        
+    XL = np.reshape(XL, np, M)
+    #% stack lags
+    
+    A = np.linalg.lstsq(XL.T,X0.T)[0].T
+    # TRY THIS WITH MATLAB    
+    
+    #% OLS using QR decomposition
+    
+    E = X0-np.dot(A, XL)
+    #% residuals
+    
+    SIG = np.linalg.lstsq(M-1,np.dot(E, E.conj().T).T)[0].T
+    #SIG = np.dot(E, E.conj().T) / (M-1)
+    #% residuals covariance matrix
+    E = np.reshape(E, n, (m-p), N)
+    #% put residuals back into per-trial form
+    
+    A = np.reshape(A, n, n, p)
+    #% so A(:,:,k) is the k-lag coefficients matrix
+    
+    return [A, SIG, E]  
     
     
     
@@ -301,55 +332,77 @@ def autocov_to_mvgc(G, x, y):
 # installation directory for licensing terms.
 #
 
+#
+#def autocov_to_var(G):
+#    
+#    import numpy as np
+#    
+#    # Local Variables: kb, AB, kf, G, G0, AFPREV, ABPREV, k, AF, AAB, q, GF, r, SIG, GB, AAF, qn
+#    # Function calls: q1, autocov_to_var, reshape, nargout, n, zeros, flipdim, permute
+#    [n,m,q1] = G.shape; 
+#    q = q1 - 1
+#    qn = q * n
+#    G0 = G[:,:,0]
+#    # covariance
+#    GF = np.reshape(G[:,:,1:], (n, qn)).conj().T
+#  
+#
+#    # TO DO: Solve FLIPDIM behaviour in python. In Matlab:
+#    # GB = reshape(permute(flipdim(G(:,:,2:end),3),[1 3 2]),qn,n);
+#
+#    # forward  autocov sequence
+#    #GB = np.reshape(np.transpose(flipdim(G[:,:,1:], 2), (0, 2, 1)), (qn, n))
+#
+#    # for lag=1 (our case in fMRI), flipdim has no effect
+#    GB = np.reshape(np.transpose(G[:,:,1:], (0, 2, 1)), (qn, n))
+#   
+#   
+#    # backward autocov sequence np.transpose(x, (1, 0, 2))
+#    AF = np.zeros([n, qn])
+#    # forward  coefficients
+#    AB = np.zeros([n, qn])
+#    # backward coefficients (reversed compared with Whittle's treatment)
+#    # initialise recursion
+#    k = 1 # model order
+#    
+#    r = q-k
+#    kf = np.arange(k*n)
+#    # forward  indices
+#    kb = np.arange(r*n, qn)
+#    # backward indices
+#    AF[:,kf] = np.linalg.lstsq(G0.T,GB.T)[0].T
+#    AB[:,kb] = np.linalg.lstsq(G0.T,GF.T)[0].T
+#    
+##    a= np.linalg.lstsq(G0.T,GB.T)[0].T
+##    b= np.dot(GB,np.linalg.pinv(G0))
+#        
+#    SIG = G0-np.dot(AF, GF)
+#    AF = np.reshape(AF, (n, n, q))
+#    return AF, SIG
+#    
+    
+ 
 
-def autocov_to_var(G):
-    
-    import numpy as np
-    
-    # Local Variables: kb, AB, kf, G, G0, AFPREV, ABPREV, k, AF, AAB, q, GF, r, SIG, GB, AAF, qn
-    # Function calls: q1, autocov_to_var, reshape, nargout, n, zeros, flipdim, permute
-    [n,m,q1] = G.shape; 
-    q = q1 - 1
-    qn = q * n
-    G0 = G[:,:,0]
-    # covariance
-    GF = np.reshape(G[:,:,1:], (n, qn)).conj().T
-  
 
-    # TO DO: Solve FLIPDIM behaviour in python. In Matlab:
-    # GB = reshape(permute(flipdim(G(:,:,2:end),3),[1 3 2]),qn,n);
-
-    # forward  autocov sequence
-    #GB = np.reshape(np.transpose(flipdim(G[:,:,1:], 2), (0, 2, 1)), (qn, n))
-
-    # for lag=1 (our case in fMRI), flipdim has no effect
-    GB = np.reshape(np.transpose(G[:,:,1:], (0, 2, 1)), (qn, n))
-   
-   
-    # backward autocov sequence np.transpose(x, (1, 0, 2))
-    AF = np.zeros([n, qn])
-    # forward  coefficients
-    AB = np.zeros([n, qn])
-    # backward coefficients (reversed compared with Whittle's treatment)
-    # initialise recursion
-    k = 1 # model order
-    
-    r = q-k
-    kf = np.arange(k*n)
-    # forward  indices
-    kb = np.arange(r*n, qn)
-    # backward indices
-    AF[:,kf] = np.linalg.lstsq(G0.T,GB.T)[0].T
-    AB[:,kb] = np.linalg.lstsq(G0.T,GF.T)[0].T
-    
-#    a= np.linalg.lstsq(G0.T,GB.T)[0].T
-#    b= np.dot(GB,np.linalg.pinv(G0))
-        
-    SIG = G0-np.dot(AF, GF)
-    AF = np.reshape(AF, (n, n, q))
-    return AF, SIG
-    
-    
+#def tsdata_to_autocov(X, q):
+#    
+#    import numpy as np
+#    from matplotlib import pylab
+#
+#    if len(X.shape) == 2:
+#        X = np.expand_dims(X, axis=2)
+#        [n, m, N] = np.shape(X)
+#    else:
+#        [n, m, N] = np.shape(X)
+#
+#    X = pylab.demean(X, axis=1) ## This is correct
+#    G = np.zeros((n, n, (q+1)))
+#    
+#    for k in range(q+1):
+#        M = N * (m-k)
+#        G[:,:,k] = np.dot(np.reshape(X[:,k:m,:], (n, M)), np.reshape(X[:,0:m-k,:], (n, M)).conj().T) / (M-1)
+#    return G
+       
     
     
     
@@ -377,54 +430,3 @@ def autocov_to_var(G):
 #        AF[:,kf-1] = np.array(np.hstack((AFPREV-np.dot(AAF, ABPREV), AAF)))
 #        AB[:,kb-1] = np.array(np.hstack((AAB, ABPREV-np.dot(AAB, AFPREV))))
 
-
-
-def tsdata_to_var(X, p):
-
-    import numpy as np
-    from matplotlib import pylab
-    # Local Variables: A, M, p1, E, XL, m, k, n, p, SIG, np, X, X0, N
-    # Function calls: reshape, NaN, nargout, tsdata_to_var, demean, zeros, size, strcmpi
-    [n, m, N] = X.shape
-    #%assert(p < m,'too many lags');
-    p1 = p+1
-    
-    A = 0 #nan
-    #% assure a "bad" return value if anything goes wrong (see routine 'isbad')
-    SIG = 0#nan
-    E = 0#nan
-    
-    X = pylab.demean(X, axis=1)
-    #% no constant term
-
-    M = np.dot(N, m-p)
-    np = np.dot(n, p)
-    #% stack lags
-    X0 = np.reshape(X[:,int(p1)-1:m,:], n, M)
-    #% concatenate trials for unlagged observations
-    XL = np.zeros(n, p, M)
-    for k in np.arange(1., (p)+1):
-        XL[:,int(k)-1,:] = np.reshape(X[:,int(p1-k)-1:m-k,:], n, M)
-        #% concatenate trials for k-lagged observations
-        
-    XL = np.reshape(XL, np, M)
-    #% stack lags
-    np.linalg.lstsq(G0.T,GB.T)[0].T
-    A = matdiv(X0, XL)
-    # TRY THIS WITH MATLAB    
-    
-    #% OLS using QR decomposition
-    
-    E = X0-np.dot(A, XL)
-    #% residuals
-    np.linalg.lstsq(G0.T,GB.T)[0].T
-    SIG = matdiv(np.dot(E, E.conj().T), M-1.)
-    #% residuals covariance matrix
-    E = np.reshape(E, n, (m-p), N)
-    #% put residuals back into per-trial form
-    
-    
-    A = np.reshape(A, n, n, p)
-    #% so A(:,:,k) is the k-lag coefficients matrix
-    
-    return [A, SIG, E]
