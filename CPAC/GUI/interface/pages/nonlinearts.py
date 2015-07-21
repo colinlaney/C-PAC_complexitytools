@@ -210,7 +210,7 @@ class SFD(wx.ScrolledWindow):
                       control = control.LISTBOX_COMBO,
                       name = "Measures",
                       type = dtype.LDICT,
-                      values = ['DFA', 'Fractality','Mutual Information','Avalanches'],
+                      values = ['DFA', 'Fractality','Avalanches'],
                       comment = "Select which IT measures to apply:\n"\
                                 "dfa = Detrended Fluctuation Analysis\n"\
                                  "fractal = Fractality\n"\
