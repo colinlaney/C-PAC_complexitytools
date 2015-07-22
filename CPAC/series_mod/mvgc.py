@@ -71,7 +71,7 @@ def pwcgc(tsdata, p):
     F = np.zeros([n,n])
     
     # full regression   
-    [AF,SIG,E] = tsdata_to_var(tsdata)    
+    [AF,SIG,E] = tsdata_to_var(tsdata, p)    
     LSIG = np.log(abs(np.diag(SIG)))
     
     for j_ in range(n):
@@ -203,7 +203,9 @@ def tsdata_to_var(X, p):
     from matplotlib import pylab
     # Local Variables: A, M, p1, E, XL, m, k, n, p, SIG, np, X, X0, N
     # Function calls: reshape, NaN, nargout, tsdata_to_var, demean, zeros, size, strcmpi
+    X = X[:,:,np.newaxis]
     [n, m, N] = X.shape
+    N=1
     #%assert(p < m,'too many lags');
     p1 = p+1
     
@@ -216,34 +218,30 @@ def tsdata_to_var(X, p):
     #% no constant term
 
     M = np.dot(N, m-p)
-    np = np.dot(n, p)
+    n_p = np.dot(n, p)
     #% stack lags
-    X0 = np.reshape(X[:,int(p1)-1:m,:], n, M)
+    X0 = np.reshape(X[:,p1-1:m], (n, M))
     #% concatenate trials for unlagged observations
-    XL = np.zeros(n, p, M)
-    for k in np.arange(1., (p)+1):
-        XL[:,int(k)-1,:] = np.reshape(X[:,int(p1-k)-1:m-k,:], n, M)
+    XL = np.zeros((n, p, M))
+    for k in range(1, (p)+1): #if lag = 1, only 1 iteration
+        XL[:,k-1,:] = np.reshape(X[:,p1-k-1:m-k,:], (n, M))
         #% concatenate trials for k-lagged observations
         
-    XL = np.reshape(XL, np, M)
+    XL = np.reshape(XL, (n_p, M))
     #% stack lags
     
     A = np.linalg.lstsq(XL.T,X0.T)[0].T
-    # TRY THIS WITH MATLAB    
+    #% so A(:,:,k) is the k-lag coefficients matrix
     
     #% OLS using QR decomposition
     
     E = X0-np.dot(A, XL)
     #% residuals
     
-    SIG = np.linalg.lstsq(M-1,np.dot(E, E.conj().T).T)[0].T
+    SIG = np.dot(E, E.T)/(M-1)
     #SIG = np.dot(E, E.conj().T) / (M-1)
     #% residuals covariance matrix
-    E = np.reshape(E, n, (m-p), N)
-    #% put residuals back into per-trial form
     
-    A = np.reshape(A, n, n, p)
-    #% so A(:,:,k) is the k-lag coefficients matrix
     
     return [A, SIG, E]  
     
