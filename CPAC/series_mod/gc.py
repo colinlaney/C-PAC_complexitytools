@@ -64,7 +64,7 @@
 def pwcgc(tsdata, p):
     
     import numpy as np
-    from series_mod import tsdata_to_var
+    from series_mod.gc import tsdata_to_var
 
 
     n = tsdata.shape[0]

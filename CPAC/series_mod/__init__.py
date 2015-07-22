@@ -21,7 +21,7 @@ from utils import compute_ROI_corr, \
             phase_sync, \
             PLV
             
-from mvgc import mvgc, \
+from gc import mvgc, \
             pwcgc, \
             tsdata_to_var
             
