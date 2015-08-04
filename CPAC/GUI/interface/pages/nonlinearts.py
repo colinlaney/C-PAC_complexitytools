@@ -44,7 +44,7 @@ class Preanalysis(wx.ScrolledWindow):
         
         self.page.add(label="Run Timeseries Preanalysis Measures", 
                  control=control.CHOICE_BOX, 
-                 name='runPre', 
+                 name='run_pre', 
                  type=dtype.LSTR, 
                  comment="Run Timseries Preanalysis Measures", 
                  values=["Off","On"],
@@ -52,7 +52,7 @@ class Preanalysis(wx.ScrolledWindow):
                  
         self.page.add(label="Voxelwise / ROI extraction", 
                  control=control.CHOICE_BOX, 
-                 name='voxel_roi', 
+                 name='voxel_roi_pre', 
                  type=dtype.LSTR, 
                  comment="Run Information Theory Measures voxelwise or after ROI timeseries extraction", 
                  values=["Voxelwise","ROI"],
@@ -60,13 +60,13 @@ class Preanalysis(wx.ScrolledWindow):
         
         self.page.add(label="fMRI image", 
                      control=control.COMBO_BOX, 
-                     name='input_image', 
+                     name='input_image_pre', 
                      type=dtype.STR, 
                      comment="fMRI image for calculation")
        
         self.page.add(label="Parcellation Mask", 
                      control=control.COMBO_BOX, 
-                     name='input_mask', 
+                     name='input_mask_pre', 
                      type=dtype.STR, 
                      comment="Parcellation Mask if you want to calculate")
 
@@ -74,7 +74,7 @@ class Preanalysis(wx.ScrolledWindow):
         self.page.add(label = "Measures:",
                       #control = control.CHECKLISTBOX_COMBO,
                       control = control.LISTBOX_COMBO,
-                      name = "Measures",
+                      name = "measures_pre",
                       type = dtype.LDICT,
                       values = ['Correlation', 'Partial Correlation','Phase Syncrhonization Index','Phase Locking Value'],
                       comment = "Select which preanalysis measures to apply:\n"\
@@ -87,7 +87,7 @@ class Preanalysis(wx.ScrolledWindow):
      
         self.page.add(label="Output Options ",
                       control=control.CHECKLIST_BOX,
-                      name="measure_options",
+                      name="output_options_pre",
                       type=dtype.LBOOL,
                       values=['CSV', 'NUMPY','NIFTI'],
                       comment="By default, results are written as NIFTI files. Additional output formats are as a .csv spreadsheet or a Numpy array.")
@@ -120,7 +120,7 @@ class IT(wx.ScrolledWindow):
                  
         self.page.add(label="Voxelwise / ROI extraction", 
                  control=control.CHOICE_BOX, 
-                 name='voxel_roi', 
+                 name='voxel_roi_IT', 
                  type=dtype.LSTR, 
                  comment="Run Information Theory Measures voxelwise or after ROI timeseries extraction", 
                  values=["Voxelwise","ROI"],
@@ -128,13 +128,13 @@ class IT(wx.ScrolledWindow):
         
         self.page.add(label="fMRI image", 
                      control=control.COMBO_BOX, 
-                     name='input_image', 
+                     name='input_image_IT', 
                      type=dtype.STR, 
                      comment="fMRI image for calculation")
        
         self.page.add(label="Parcellation Mask", 
                      control=control.COMBO_BOX, 
-                     name='input_mask', 
+                     name='input_mask_IT', 
                      type=dtype.STR, 
                      comment="Parcellation Mask if you want to calculate")
 
@@ -142,7 +142,7 @@ class IT(wx.ScrolledWindow):
         self.page.add(label = "Measures:",
                       #control = control.CHECKLISTBOX_COMBO,
                       control = control.LISTBOX_COMBO,
-                      name = "Measures",
+                      name = "measures_IT",
                       type = dtype.LDICT,
                       values = ['Entropy', 'Conditional Entropy','Mutual Information','Transfer Entropy','Entropy Correlation Coefficient'],
                       comment = "Select which IT measures to apply:\n"\
@@ -156,7 +156,7 @@ class IT(wx.ScrolledWindow):
      
         self.page.add(label="Output Options ",
                       control=control.CHECKLIST_BOX,
-                      name="measure_options",
+                      name="output_options_IT",
                       type=dtype.LBOOL,
                       values=['CSV', 'NUMPY','NIFTI'],
                       comment="By default, results are written as NIFTI files. Additional output formats are as a .csv spreadsheet or a Numpy array.")

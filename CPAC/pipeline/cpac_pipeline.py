@@ -3205,14 +3205,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
     '''
-    Inserting Network centrality
+    Inserting NLTSA
     '''
 
     new_strat_list = []
     num_strat = 0
 
 
-    if 1 in c.runNetworkCentrality:
+    if 1 in c.runPre:
         # For each desired strategy
         for strat in strat_list:
             
@@ -3229,6 +3229,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             # Connect in each workflow for the NLTSA method of interest
             # Compare our variables to fit in here
+
+            #our variables: 
+            #"run_pre","output_options_pre","measures_pre",'input_mask_pre', 
+            #'input_image_pre', voxel_roi_pre',
+
+            #"run_IT", "output_options_IT","measures_IT",'input_mask_IT', 
+            #'input_image_IT', voxel_roi_IT',
+
             def connectNLTSAWorkflow(methodOption,
                                           thresholdOption,
                                           threshold,
