@@ -63,6 +63,10 @@ from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
+from CPAC.series_mod.series_mod import create_ROI_corr, \
+                create_ROI_pcorr, \
+                create_MI, \
+                create_TE
 import zlib
 import linecache
 import csv
@@ -3055,6 +3059,184 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                           weightOptions,
                                           mList):
                 # Create centrality workflow
+                network_centrality = create_resting_state_graphs(\
+                                     c.memoryAllocatedForDegreeCentrality,
+                                     'network_centrality_%d-%d' \
+                                     %(num_strat,methodOption))
+                # Connect registered function input image to inputspec
+                workflow.connect(resample_functional_to_template, 'out_file',
+                                 network_centrality, 'inputspec.subject')
+                # Subject mask/parcellation image
+                workflow.connect(template_dataflow, 'outputspec.out_file',
+                                 network_centrality, 'inputspec.template')
+                # Give which method we're doing (0 - deg, 1 - eig, 2 - lfcd)
+                network_centrality.inputs.inputspec.method_option = \
+                methodOption
+                # Type of threshold (0 - p-value, 1 - sparsity, 2 - corr)
+                network_centrality.inputs.inputspec.threshold_option = \
+                thresholdOption
+                # Connect threshold value (float)
+                network_centrality.inputs.inputspec.threshold = threshold
+                # List of two booleans, first for binary, second for weighted
+                network_centrality.inputs.inputspec.weight_options = \
+                weightOptions
+                # Merge output with others via merge_node connection
+                workflow.connect(network_centrality,
+                                 'outputspec.centrality_outputs',
+                                 merge_node,
+                                 mList)
+                # Append this as a strategy
+                strat.append_name(network_centrality.name)
+                # Create log node for strategy
+                create_log_node(network_centrality,
+                                'outputspec.centrality_outputs',
+                                num_strat)
+                
+            # Init merge node for appending method output lists to one another
+            merge_node = pe.Node(util.Function(input_names=['deg_list',
+                                                            'eig_list',
+                                                            'lfcd_list'],
+                                          output_names = ['merged_list'],
+                                          function = merge_lists),
+                            name = 'merge_node_%d' % num_strat)
+            
+            # If we're calculating degree centrality
+            if c.degWeightOptions.count(True) > 0:
+                connectCentralityWorkflow(0,
+                                          c.degCorrelationThresholdOption,
+                                          c.degCorrelationThreshold,
+                                          c.degWeightOptions,
+                                          'deg_list')
+
+            # If we're calculating eigenvector centrality
+            if c.eigWeightOptions.count(True) > 0:
+                connectCentralityWorkflow(1,
+                                          c.eigCorrelationThresholdOption,
+                                          c.eigCorrelationThreshold,
+                                          c.eigWeightOptions,
+                                          'eig_list')
+            
+            # If we're calculating lFCD
+            if c.lfcdWeightOptions.count(True) > 0:
+                connectCentralityWorkflow(2,
+                                          2,
+                                          c.lfcdCorrelationThreshold,
+                                          c.lfcdWeightOptions,
+                                          'lfcd_list')
+
+            try:
+
+                node, out_file = strat.get_node_from_resource_pool('functional_mni')
+
+                # resample the input functional file to template(roi/mask)
+                workflow.connect(node, out_file,
+                                 resample_functional_to_template, 'in_file')
+                workflow.connect(template_dataflow, 'outputspec.out_file',
+                                 resample_functional_to_template, 'reference')
+                strat.update_resource_pool({'centrality_outputs' : (merge_node, 'merged_list')})
+
+                # if smoothing is required
+                if c.fwhm != None :
+
+                    z_score = get_cent_zscore('centrality_zscore_%d' % num_strat)
+
+                    smoothing = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                       name='network_centrality_smooth_%d' % num_strat,
+                                       iterfield=['in_file'])
+
+                    zstd_smoothing = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                       name='network_centrality_zstd_smooth_%d' % num_strat,
+                                       iterfield=['in_file'])
+
+
+                    # calculate zscores
+                    workflow.connect(template_dataflow, 'outputspec.out_file',
+                                     z_score, 'inputspec.mask_file')
+# workflow.connect(network_centrality, 'outputspec.centrality_outputs',
+# z_score, 'inputspec.input_file')
+                    workflow.connect(merge_node, 'merged_list',
+                                     z_score, 'inputspec.input_file')
+
+
+                    # connecting raw centrality outputs to smoothing
+                    workflow.connect(template_dataflow, 'outputspec.out_file',
+                                     smoothing, 'operand_files')
+                    workflow.connect(merge_node, 'merged_list',
+                                    smoothing, 'in_file')
+                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                     smoothing, 'op_string')
+
+
+                    # connecting zscores to smoothing
+                    workflow.connect(template_dataflow, 'outputspec.out_file',
+                                     zstd_smoothing, 'operand_files')
+                    workflow.connect(z_score, 'outputspec.z_score_img',
+                                    zstd_smoothing, 'in_file')
+                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                     zstd_smoothing, 'op_string')
+
+                    strat.append_name(smoothing.name)
+                    strat.update_resource_pool({'centrality_outputs_zstd': (z_score, 'outputspec.z_score_img'),
+                                                'centrality_outputs_smoothed': (smoothing, 'out_file'),
+                                                'centrality_outputs_smoothed_zstd': (zstd_smoothing, 'out_file')})
+                    
+                    strat.append_name(smoothing.name)
+                    create_log_node(smoothing, 'out_file', num_strat)
+
+            except:
+                logConnectionError('Network Centrality', num_strat, strat.get_resource_pool(), '0050')
+                raise
+
+            if 0 in c.runNetworkCentrality:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+
+            num_strat += 1
+
+    strat_list += new_strat_list
+
+
+    num_strat = 0
+
+
+    '''
+    Inserting Network centrality
+    '''
+
+    new_strat_list = []
+    num_strat = 0
+
+
+    if 1 in c.runNetworkCentrality:
+        # For each desired strategy
+        for strat in strat_list:
+            
+#            # Resample the functional mni to the centrality mask resolution
+#            resample_functional_to_template = pe.Node(interface=fsl.FLIRT(),
+#                                                  name='resample_functional_to_template_%d' % num_strat)
+#            resample_functional_to_template.inputs.interp = 'trilinear'
+#            resample_functional_to_template.inputs.apply_xfm = True
+#            resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
+#
+#            template_dataflow = create_roi_mask_dataflow(c.templateSpecificationFile,
+#                                                         'Network Centrality',
+#                                                         'template_dataflow_%d' % num_strat)
+
+            # Connect in each workflow for the NLTSA method of interest
+            # Compare our variables to fit in here
+            def connectNLTSAWorkflow(methodOption,
+                                          thresholdOption,
+                                          threshold,
+                                          weightOptions,
+                                          mList):
+                # Create centrality workflow ##create_ROI_corr !!!
+                                          
+                # VISUALIZE AND USE ALL THE NLTSA PARAMETERS
                 network_centrality = create_resting_state_graphs(\
                                      c.memoryAllocatedForDegreeCentrality,
                                      'network_centrality_%d-%d' \

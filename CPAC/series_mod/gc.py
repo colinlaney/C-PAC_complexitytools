@@ -80,13 +80,14 @@ def pwcgc(tsdata, p):
         jo = np.arange(n) # omit j
         jo = np.delete(jo,j_)
 
-        [AF,SIGj,E] = tsdata_to_var(tsdata[jo], p)
-          
+        [AF,SIGj,E] = tsdata_to_var(tsdata[jo], p)  
         LSIGj = np.log(abs(np.diag(SIGj)))
     
-        for ii_ in range(n-1):
-            i_ = jo[ii_]
-            F[i_,j_] = LSIGj[ii_]-LSIG[i_]
+        F[jo,j_] = LSIGj-LSIG[jo]
+    
+#        for ii_ in range(n-1):
+#            i_ = jo[ii_]
+#            F[i_,j_] = LSIGj[ii_]-LSIG[i_]
         
     return F
     
