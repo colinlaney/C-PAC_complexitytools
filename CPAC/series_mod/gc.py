@@ -77,12 +77,10 @@ def pwcgc(tsdata, p):
     for j_ in range(n):
     
         # reduced regression
-        
         jo = np.arange(n) # omit j
         jo = np.delete(jo,j_)
 
-        ixgrid1 = np.ix_(jo,jo)
-        [AF,SIGj,E] = tsdata_to_var(tsdata[ixgrid1], p)
+        [AF,SIGj,E] = tsdata_to_var(tsdata[jo], p)
           
         LSIGj = np.log(abs(np.diag(SIGj)))
     
