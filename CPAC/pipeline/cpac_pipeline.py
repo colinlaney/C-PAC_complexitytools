@@ -3286,25 +3286,25 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                      
                 # Connect registered function input image to inputspec
                 workflow.connect(resample_functional_to_template, 'out_file',
-                                 network_centrality, 'inputspec.subject')
+                                 nltsa, 'inputspec.subject')
                 # Subject mask/parcellation image
                 workflow.connect(template_dataflow, 'outputspec.out_file',
-                                 network_centrality, 'inputspec.template')
+                                 nltsa, 'inputspec.template')
                 # Give which method we're doing (0 - PRE, 1 - IT, 2 - SFA)
-                network_centrality.inputs.inputspec.method_option = \
+                nltsa.inputs.inputspec.method_option = \
                 methodOption
                 # List of booleans, a measure in each one
-                network_centrality.inputs.inputspec.weight_options = \
+                nltsa.inputs.inputspec.weight_options = \
                 measures
                 # Merge output with others via merge_node connection
-                workflow.connect(network_centrality,
+                workflow.connect(nltsa,
                                  'outputspec.centrality_outputs',
                                  merge_node,
                                  mList)
                 # Append this as a strategy
-                strat.append_name(network_centrality.name)
+                strat.append_name(nltsa.name)
                 # Create log node for strategy
-                create_log_node(network_centrality,
+                create_log_node(nltsa,
                                 'outputspec.centrality_outputs',
                                 num_strat)
                 
@@ -3343,7 +3343,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                  resample_functional_to_template, 'in_file')
                 workflow.connect(template_dataflow, 'outputspec.out_file',
                                  resample_functional_to_template, 'reference')
-                strat.update_resource_pool({'centrality_outputs' : (merge_node, 'merged_list')})
+                strat.update_resource_pool({'nltsa_outputs' : (merge_node, 'merged_list')})
 
 
             except:

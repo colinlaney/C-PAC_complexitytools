@@ -16,9 +16,9 @@ def point_process(signal):
     return pp_signal
     
     
-# Conditional Rate Maps. Given an fMRI, extract timeseries, calculate Point Process
+# Conditional Rate Map. Given an fMRI, extract timeseries, calculate Point Process
 # and then the Rate Map for each voxel given a seed   
-def cond_rr(in_file, seed_location):
+def cond_rm(in_file, seed_location):
 
     import numpy as np
     import os
@@ -48,8 +48,8 @@ def cond_rr(in_file, seed_location):
     
 
     # Reconstruct the 3D volume
-    cond_rr_file = os.path.join(os.getcwd(), 'cond_rr.nii.gz')
-    img.to_filename(cond_rr_file)
+    cond_rm_file = os.path.join(os.getcwd(), 'cond_rm.nii.gz')
+    img.to_filename(cond_rm_file)
 
-    return cond_rr_file
+    return cond_rm_file
   
