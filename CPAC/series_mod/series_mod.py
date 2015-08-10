@@ -15,6 +15,214 @@ from CPAC.series_mod.utils import compute_TE
 #from CPAC.series_mod.utils import compute_ApEn
 
 
+def create_nltsa(wf_name = 'nltsa_wf'):
+  
+    """  
+    
+    in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
+    mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
+    from CPAC import series_mod
+    wf = series_mod.create_ROI_corr()
+    wf.inputs.inputspec.in_file = in_file
+    wf.inputs.inputspec.mask_file = mask_file
+    wf.base_dir = '/home/asier/git/C-PAC/CPAC/series_mod'
+    wf.run()
+    
+    
+    
+    
+    workflow.connect(resample_functional_to_template, 'out_file',
+                                 nltsa, 'inputspec.subject')
+                # Subject mask/parcellation image
+                workflow.connect(template_dataflow, 'outputspec.out_file',
+                                 nltsa, 'inputspec.template')
+                # Give which method we're doing (0 - PRE, 1 - IT, 2 - SFA)
+                nltsa.inputs.inputspec.method_option = \
+                methodOption
+                # List of booleans, a measure in each one
+                nltsa.inputs.inputspec.measures = \
+                measures
+
+
+
+
+    """
+    if method_option == 0:
+        calc_degree = True
+    elif method_option == 1:
+        calc_eigen = True
+    elif method_option == 2:
+        calc_lfcd = True
+    # Weighting
+    out_binarize = weight_options[0]
+    out_weighted = weight_options[1]
+    
+    
+    
+    nltsa = pe.Workflow(wf_name)
+    
+    
+    # Give which method we're doing (0 - PRE, 1 - IT, 2 - SFA)
+    if method_option == 0:
+        if measures[0] == True:
+            
+            ROI_corr = pe.Workflow(wf_name)
+            inputNode = pe.Node(util.IdentityInterface(fields=[
+                                                        'in_file',
+                                                        'mask_file',
+                                                        'voxelwise'
+                                                        ]),
+                                name='inputspec')
+        
+        
+            outputNode = pe.Node(util.IdentityInterface(fields=[
+                                                            'corr_mat']),
+                                name='outputspec')
+        
+            
+        
+            corr_matNode = pe.Node(util.Function(input_names=['in_file', 'mask_file'],
+                                           output_names=['corr_mat'],
+                             function=compute_ROI_corr),
+                             name='corr_calc')
+        
+        
+            nltsa.connect(inputNode, 'in_file',
+                            corr_matNode, 'in_file')
+            nltsa.connect(inputNode, 'mask_file',
+                            corr_matNode, 'mask_file')  
+                            
+            nltsa.connect(corr_matNode, 'corr_mat',
+                         outputNode, 'corr_mat')
+     elif method_option == 1:
+        block_size = calc_blocksize(ts, memory_allocated=allocated_memory,
+                                    include_full_matrix=True)
+    # Otherwise, compute blocksize with regards to available memory
+    else:
+        block_size = calc_blocksize(ts, memory_allocated=allocated_memory,
+                                    include_full_matrix=False)
+
+
+
+    '''
+    Method to calculate centrality and map them to a nifti file
+    
+    Parameters
+    ----------
+    datafile : string (nifti file)
+        path to subject data file
+    template : string (nifti file)
+        path to mask/parcellation unit
+    method_option : integer
+        0 - degree centrality calculation, 1 - eigenvector centrality calculation, 2 - lFCD calculation
+    threshold_option : an integer
+        0 for probability p_value, 1 for sparsity threshold, 
+        2 for actual threshold value, and 3 for no threshold and fast approach
+    threshold : a float
+        pvalue/sparsity_threshold/threshold value
+    weight_options : list (boolean)
+        list of booleans, where, weight_options[0] corresponds to binary counting 
+        and weight_options[1] corresponds to weighted counting (e.g. [True,False]) 
+    allocated_memory : string
+        amount of memory allocated to degree centrality
+    
+    Returns
+    -------
+    out_list : list
+        list containing out mapped centrality images
+    '''
+    
+    # Import packages
+    from CPAC.network_centrality import load,\
+                                        get_centrality_by_rvalue,\
+                                        get_centrality_by_sparsity,\
+                                        get_centrality_fast,\
+                                        map_centrality_matrix,\
+                                        calc_blocksize,\
+                                        convert_pvalue_to_r
+    from CPAC.cwas.subdist import norm_cols
+    
+    # Check for input errors
+    if weight_options.count(True) == 0:
+        raise Exception("Invalid values in weight options" \
+                        "At least one True value is required")
+    # If it's sparsity thresholding, check for (0,1]
+    if threshold_option == 1:
+        if threshold <= 0 or threshold > 1:
+            raise Exception('Threshold value must be a positive number'\
+                            'greater than 0 and less than or equal to 1.'\
+                            '\nCurrently it is set at %d' % threshold)
+    if method_option == 2 and threshold_option != 2:
+        raise Exception('lFCD must use correlation-type thresholding.'\
+                         'Check the pipline configuration has this setting')
+    import time
+    start = time.clock()
+    
+    # Init variables
+    out_list = []
+    ts, aff, mask, t_type, scans = load(datafile, template)
+    
+    # If we're doing eigenvectory centrality, need entire correlation matrix
+    if method_option == 0 and threshold_option == 1:
+        block_size = calc_blocksize(ts, memory_allocated=allocated_memory,
+                                    sparsity_thresh=threshold)
+    elif method_option == 1:
+        block_size = calc_blocksize(ts, memory_allocated=allocated_memory,
+                                    include_full_matrix=True)
+    # Otherwise, compute blocksize with regards to available memory
+    else:
+        block_size = calc_blocksize(ts, memory_allocated=allocated_memory,
+                                    include_full_matrix=False)
+    # Normalize the timeseries for easy dot-product correlation calc.
+    ts_normd = norm_cols(ts.T)
+    
+    # P-value threshold centrality
+    if threshold_option == 0:
+        r_value = convert_pvalue_to_r(scans, threshold)
+        centrality_matrix = get_centrality_by_rvalue(ts_normd, 
+                                                     mask, 
+                                                     method_option, 
+                                                     weight_options, 
+                                                     r_value, 
+                                                     block_size)
+    # Sparsity threshold
+    elif threshold_option == 1:
+        centrality_matrix = get_centrality_by_sparsity(ts_normd, 
+                                                       method_option, 
+                                                       weight_options, 
+                                                       threshold, 
+                                                       block_size)
+    # R-value threshold centrality
+    elif threshold_option == 2:
+        centrality_matrix = get_centrality_by_rvalue(ts_normd, 
+                                                     mask, 
+                                                     method_option, 
+                                                     weight_options, 
+                                                     threshold, 
+                                                     block_size)
+    # For fast approach (no thresholding)
+    elif threshold_option == 3:
+        centrality_matrix = get_centrality_fast(ts, method_option)
+    # Otherwise, incorrect input for threshold_option
+    else:
+        raise Exception('Option must be between 0-3 and not %s, check your '\
+                        'pipeline config file' % str(threshold_option))
+    
+    # Print timing info
+    print 'Timing:', time.clock() - start
+ 
+    # Map the arrays back to images
+    for mat in centrality_matrix:
+        centrality_image = map_centrality_matrix(mat, aff, mask, t_type)
+        out_list.append(centrality_image)
+    
+    # Finally return
+    return out_list
+
+
+    return ROI_corr
+
+
 def create_ROI_corr():
 
     """

@@ -3211,50 +3211,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     new_strat_list = []
     num_strat = 0
 
-
-    if 1 in c.runPre: 
-        # For each desired strategy
-        for strat in strat_list:
-
-            my_wf = create_my_wf('my_wf_%d' % num_strat)  ##PROBABLY I HAVE TO CHANGE MY WORKFLOWS
-            
-            if (1 in c.runROITimeseries):
-                try:
-#                    node, out_file = strat.get_leaf_properties()
-#                    workflow.connect(node, out_file,
-#                                     my_wf, 'inputspec.functional_file')
-    
-                    node, out_file = strat.get_node_from_resource_pool('roi_timeseries')
-                    workflow.connect(node, (out_file, extract_one_d),
-                                     my_wf, 'inputspec.timeseries_one_d')
-                except:
-                    #logConnectionError('SCA ROI', num_strat, strat.get_resource_pool(), '0032')
-                    raise
-            if (1 in c.runVoxelTimeseries):
-                try:
-#                    node, out_file = strat.get_leaf_properties()
-#                    workflow.connect(node, out_file,
-#                                     my_wf, 'inputspec.functional_file')
-    
-                    node, out_file = strat.get_node_from_resource_pool('voxel_timeseries')
-                    workflow.connect(node, (out_file, extract_one_d),
-                                     my_wf, 'inputspec.timeseries_one_d')
-                except:
-                    #logConnectionError('SCA ROI', num_strat, strat.get_resource_pool(), '0032')
-                    raise
-
-
-            strat.update_resource_pool({'sca_roi_correlation_stack':(my_wf, 'outputspec.correlation_stack'),
-                                        'sca_roi_correlation_files':(my_wf, 'outputspec.correlation_files')})
-            
-            create_log_node(my_wf, 'outputspec.correlation_stack', num_strat)
-            
-            strat.append_name(sca_roi.name)
-            num_strat += 1
-            
-    #strat_list += new_strat_list
-            
-
 #==============================================================================
 #              Connect in each workflow for the NLTSA method of interest
 #              Compare our variables to fit in here
@@ -3266,46 +3222,49 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 #             "run_IT", "output_options_IT","measures_IT",'input_mask_IT', 
 #             'input_image_IT', voxel_roi_IT',
 #==============================================================================
+    if 1 in c.run_nltsa:
+        # For each desired strategy
+        for strat in strat_list:
 
             def connectNLTSAWorkflow(methodOption, #1,2,3 depending if PRE,IT,SFA
                                           measures,
                                           mList):
                 # Create centrality workflow ##create_ROI_corr !!!
-                                          
-                # VISUALIZE AND USE ALL THE NLTSA PARAMETERS
-#                network_centrality = create_resting_state_graphs(\
-#                                     c.memoryAllocatedForDegreeCentrality,
-#                                     'network_centrality_%d-%d' \
-#                                     %(num_strat,methodOption))
-                                     
-                nltsa = create_nltsa(\
-                                     c.memoryAllocatedForDegreeCentrality,
-                                     'network_centrality_%d-%d' \
+
+                nltsa = create_nltsa('network_centrality_%d-%d' \
                                      %(num_strat,methodOption))                     
-                                     #NEED OF NEW WF!!!
                                      
+                node, out_file = strat.get_node_from_resource_pool('roi_timeseries')
+                # TO CALCULATE CRITICALLITY, fMRI needed!!
                 # Connect registered function input image to inputspec
-                workflow.connect(resample_functional_to_template, 'out_file',
-                                 nltsa, 'inputspec.subject')
-                # Subject mask/parcellation image
-                workflow.connect(template_dataflow, 'outputspec.out_file',
-                                 nltsa, 'inputspec.template')
+                # workflow.connect(resample_functional_to_template, 'out_file',
+                #                 nltsa, 'inputspec.subject')
+                #node, out_file = strat.get_node_from_resource_pool('functional_mni')
+
+                
+                workflow.connect(node, (out_file, extract_one_d),
+                                     nltsa, 'inputspec.timeseries_one_d')
+                          
+                                     
+
+                            
+                                 
                 # Give which method we're doing (0 - PRE, 1 - IT, 2 - SFA)
                 nltsa.inputs.inputspec.method_option = \
                 methodOption
                 # List of booleans, a measure in each one
-                nltsa.inputs.inputspec.weight_options = \
+                nltsa.inputs.inputspec.measures = \
                 measures
                 # Merge output with others via merge_node connection
                 workflow.connect(nltsa,
-                                 'outputspec.centrality_outputs',
+                                 'outputspec.nltsa_outputs',
                                  merge_node,
                                  mList)
                 # Append this as a strategy
                 strat.append_name(nltsa.name)
                 # Create log node for strategy
                 create_log_node(nltsa,
-                                'outputspec.centrality_outputs',
+                                'outputspec.nltsa_outputs',
                                 num_strat)
                 
             # Init merge node for appending method output lists to one another
@@ -3350,7 +3309,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 #logConnectionError('Network Centrality', num_strat, strat.get_resource_pool(), '0050')
                 raise
 
-    if 0 in c.runPre:
+    if 0 in c.runnltsa:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)

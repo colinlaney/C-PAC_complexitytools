@@ -44,7 +44,7 @@ class Preanalysis(wx.ScrolledWindow):
         
         self.page.add(label="Run NonLinearTimeSeriesAnalysis", 
                  control=control.CHOICE_BOX, 
-                 name='run_pre', 
+                 name='run_nltsa', 
                  type=dtype.LSTR, 
                  comment="Run NonLinearTimeSeriesAnalysis", 
                  values=["Off","On"],
