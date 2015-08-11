@@ -80,3 +80,76 @@ def cond_rm(in_file, seed_location):
 
     return cond_rm_file
   
+  
+  N=200000;
+species=300;
+val=[];
+val1=[];
+val2=[];
+aval=[];
+arr=13+7*rand(1,species);
+val1=[val1,min(arr)];
+val2=[val2,max(val1)];
+vvvold=-2;
+count=0;
+for j=1:N-1
+ if (mod(j,1000)==0)
+  j
+ end
+ index=find(arr==min(arr));
+ nn=length(index);
+ choice=ceil(nn*rand);
+ vvv=index(choice);
+ val=[val,arr(vvv)];
+ arr(vvv)=20*rand;
+ if ((vvv ~= species) & (vvv ~= 1))
+   arr(vvv+1)=20*rand;
+   arr(vvv-1)=20*rand;
+ end
+ if ((vvv)==species)
+   arr(1)=20*rand;
+   arr(species-1)=20*rand;
+ end
+ if ((vvv)==1)
+   arr(species)=20*rand;
+   arr(2)=20*rand;
+ end
+ val1=[val1,min(arr)];
+ val2=[val2,max(val1)];
+ if ((vvv == vvvold-1) | (vvv == vvvold+1))
+  count = count+1;
+ else
+  aval=[aval,count];
+  count=0;
+  vvvold=vvv;
+ end
+end
+figure('Position',[1 1 400 200])
+index=(aval ~=0);
+aval1=aval(index);
+plot(1:length(aval1),aval1,'b')
+title('Evolution Simulation - Fitness avalanches -- Raw Data');
+xlabel('Steps');
+ylabel('Avalanche Size');
+mx=max(aval1);
+mx=ceil(mx/10)*10;
+mn=min(aval1);
+nbins=10;
+test=hist(aval1,nbins);
+index1=[test > 0];
+figure('Position',[1 1 400 200])
+yval=test(index1);
+len=length(yval);
+xval=mn+(0:(nbins-1))*(mx-mn)/nbins;
+xval=xval(index1);
+loglog(xval,yval,'r.')
+%loglog(mn+(0:(nbins-1))*(mx-mn)/nbins,test(index1),'r.')
+title('Evolution Simulation - Fitness avalanches -- LogLog Plot');
+xlabel('Avalanche Size');
+ylabel('Number of Avalanches');
+figure('Position',[1 1 400 200])
+bar(xval,yval)
+title('Evolution Simulation - Fitness avalanches -- Bar Graph');
+xlabel('Avalanche Size');
+ylabel('Number of Avalanches');
+

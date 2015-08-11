@@ -9,86 +9,59 @@
 #matshow(MI_mat);colorbar();clim(0,np.max(MI_mat));show()
 
 
-def compute_ROI_corr(in_file, mask_file = 0, voxelwise = 0):
+def compute_corr(in_file):
 
-    from CPAC.series_mod import gen_roi_timeseries
-    from CPAC.series_mod import gen_voxel_timeseries
     from CPAC.series_mod import corr  
     import numpy as np
+
+    # treatment 1D matrix
+    data = np.genfromtxt(in_file, skip_header = 1)[:,2:].T
+    # TEST IF THE STRUCTURE OF THE DATA IS ADECUATE. I DON'T KNOW HOW 1D FILES FROM CPAC ARE
     
-    if voxelwise ==0:
-        ROI_data = gen_roi_timeseries(in_file, mask_file)
-    else:
-        ROI_data = gen_voxel_timeseries(in_file)
-            
-    corr_mat = corr(ROI_data)
+    corr_mat = corr(data)
     
-    np.savetxt(in_file[:-7]+'_corr.txt', corr_mat)
-    #make_image_from_bin( in_file, corr_mat, mask_file) 
-    
-#    img = nb.Nifti1Image(K, header=res_img.get_header(), affine=res_img.get_affine())
-#
-#    reho_file = os.path.join(os.getcwd(), 'ReHo.nii.gz')
-#
-#    img.to_filename(reho_file)
-#
-#    out_file = reho_file
+    np.save(in_file[:-7]+'_corr.npy', corr_mat)
 
     return corr_mat
     
-def compute_ROI_pcorr(in_file, mask_file = 0, voxelwise = 0):
+def compute_pcorr(in_file):
 
-    from CPAC.series_mod import gen_roi_timeseries
-    from CPAC.series_mod import gen_voxel_timeseries    
     from CPAC.series_mod import partial_corr  
     import numpy as np
     
-    if voxelwise ==0:
-        ROI_data = gen_roi_timeseries(in_file, mask_file)
-    else:
-        ROI_data = gen_voxel_timeseries(in_file)
- 
+    data = np.genfromtxt(in_file, skip_header = 1)[:,2:].T 
     
-    pcorr_mat = partial_corr(ROI_data)
+    pcorr_mat = partial_corr(data)
     
-    np.savetxt(in_file[:-7]+'partial_corr.txt', pcorr_mat)
-    #make_image_from_bin( in_file, pcorr_mat, mask_file)    
+    np.save(in_file[:-7]+'_pcorr.npy', pcorr_mat)  
 
     return pcorr_mat    
     
-def compute_MI(in_file, mask_file = 0, voxelwise = 0):
+def compute_MI(in_file):
 
-    from CPAC.series_mod import gen_roi_timeseries
-    from CPAC.series_mod import gen_voxel_timeseries
     from CPAC.series_mod import transform
     from CPAC.series_mod import mutual_information
     import numpy as np
     import math
 
-    if voxelwise ==0:
-        ROI_data = gen_roi_timeseries(in_file, mask_file)
-    else:
-        ROI_data = gen_voxel_timeseries(in_file) 
+    data = np.genfromtxt(in_file, skip_header = 1)[:,2:].T
     
-    n_var = ROI_data.shape[0]
-    points = ROI_data.shape[1]
+    n_var = data.shape[0]
+    points = data.shape[1]
     bins = math.pow(points, 1/3.) #to the 3rd due to Equiquantization formula
     # Proposed by Milan Palus. n+1 where n is the number of vars in the computation
     # as it is pairwise, n+1 is 3
     bins = np.round(bins)
     
-    ROI_data = transform(ROI_data,bins).astype(int)
-    
- 
+    data = transform(data,bins).astype(int)
     
     MI_mat = np.zeros((n_var,n_var))    
     
     for i_ in range(n_var):
         for j_ in range(n_var):
-            MI_mat[i_,j_] = mutual_information(ROI_data[i_,:],ROI_data[j_,:])
+            MI_mat[i_,j_] = mutual_information(data[i_,:],data[j_,:])
         
-    np.savetxt(in_file[:-7]+'_MI.txt', MI_mat)
-    #make_image_from_bin( in_file, MI_mat, mask_file)    
+    np.save(in_file[:-7]+'_MI.npy', MI_mat)
         
     ## CHECK THE MATRICES SHAPE AND RESULTS
 
@@ -96,35 +69,30 @@ def compute_MI(in_file, mask_file = 0, voxelwise = 0):
     
 def compute_TE(in_file, mask_file = 0, voxelwise = 0):
 
-    from CPAC.series_mod import gen_roi_timeseries
-    from CPAC.series_mod import gen_voxel_timeseries
     from CPAC.series_mod import transform
     from CPAC.series_mod import transfer_entropy
     import numpy as np
     import math
-    
-    if voxelwise ==0:
-        ROI_data = gen_roi_timeseries(in_file, mask_file)
-    else:
-        ROI_data = gen_voxel_timeseries(in_file)  
-    
-    n_var = ROI_data.shape[0]
-    points = ROI_data.shape[1]
+
+    data = np.genfromtxt(in_file, skip_header = 1)[:,2:].T    
+   
+    n_var = data.shape[0]
+    points = data.shape[1]
     bins = math.pow(points, 1/3.) #to the 3rd due to Equiquantization formula
     # Proposed by Milan Palus. n+1 where n is the number of vars in the computation
     # as it is pairwise, n+1 is 3
     bins = np.round(bins)
     
-    ROI_data = transform(ROI_data,bins).astype(int)
+    data = transform(data,bins).astype(int)
     
     TE_mat = np.zeros((n_var,n_var))    
     
     for i_ in range(n_var):
         for j_ in range(n_var):
-            TE_mat[i_,j_] = transfer_entropy(ROI_data[i_,:],ROI_data[j_,:],1)
+            TE_mat[i_,j_] = transfer_entropy(data[i_,:],data[j_,:],1)
     
     
-    np.savetxt(in_file[:-7]+'_TE.txt', TE_mat)  
+    np.save(in_file[:-7]+'_TE.npy', TE_mat)
     #make_image_from_bin( in_file, TE_mat, mask_file)
     
     return TE_mat
