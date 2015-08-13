@@ -93,7 +93,6 @@ class Partition(object):
         if at_beginning == True:
             self.exit = self.plogp(self.exitDegree)
             self.code_length = self.exit - 2.0 * self.exit_log_exit + self.degree_log_degree - self.nodeDegree_log_nodeDegree
-            print "mash allah"
 
     def plogp(self, degree):
         """Entropy calculation"""
@@ -106,19 +105,14 @@ class Partition(object):
 
 
     def neighbourhood_link_strength(self, node):
-        community_links = {}
-        for neighbour in self.graph.neighbors(node):
-            community_of_neighbour = self.modules[neighbour]
-            community_links[community_of_neighbour] = community_links.get(community_of_neighbour, 0) + 1
-        return community_links
-        # weights = {}
-        # for neighbor, datas in self.graph[node].items() :
-        #     if neighbor != node :
-        #         weight = datas.get("weight", 1)
-        #         neighborcom = self.modules[neighbor]
-        #         weights[neighborcom] = weights.get(neighborcom, 0) + weight
-        #
-        # return weights
+        weights = {}
+        for neighbor, datas in self.graph[node].items() :
+            if neighbor != node :
+                weight = datas.get("weight", 1)
+                neighborcom = self.modules[neighbor]
+                weights[neighborcom] = weights.get(neighborcom, 0) + weight
+
+        return weights
 
     def renumber_modules(self, current_modules):
         ret = current_modules.copy()
@@ -234,29 +228,19 @@ class Partition(object):
 
 
     def second_pass(self):
-        # aggregated_graph = nx.Graph()
-        #
-        # # The new graph consists of as many "supernodes" as there are partitions
-        # aggregated_graph.add_nodes_from(set(self.modules.values()))
-        # # make edges between communites, bundle more edges between nodes in weight attribute
-        # edge_list=[(self.modules[node1], self.modules[node2], attr.get('weight', 1) ) for node1, node2, attr in self.graph.edges(data=True)]
-        # sorted_edge_list = sorted(edge_list)
-        # sum_z = lambda tuples: sum(t[2] for t in tuples)
-        # weighted_edge_list = [(k[0], k[1], sum_z(g)) for k, g in groupby(sorted_edge_list, lambda t: (t[0], t[1]))]
-        # aggregated_graph.add_weighted_edges_from(weighted_edge_list)
-        #
-        # return aggregated_graph
-        ret = nx.Graph()
-        ret.add_nodes_from(self.modules.values())
+        aggregated_graph = nx.Graph()
 
-        for node1, node2, datas in self.graph.edges_iter(data = True) :
-            weight = datas.get("weight", 1)
-            com1 = self.modules[node1]
-            com2 = self.modules[node2]
-            w_prec = ret.get_edge_data(com1, com2, {"weight":0}).get("weight", 1)
-            ret.add_edge(com1, com2, weight = w_prec + weight)
+        # The new graph consists of as many "supernodes" as there are partitions
+        aggregated_graph.add_nodes_from(set(self.modules.values()))
+        # make edges between communites, bundle more edges between nodes in weight attribute
+        edge_list=[(self.modules[node1], self.modules[node2], attr.get('weight', 1) ) for node1, node2, attr in self.graph.edges(data=True)]
+        sorted_edge_list = sorted(edge_list)
+        sum_z = lambda tuples: sum(t[2] for t in tuples)
+        weighted_edge_list = [(k[0], k[1], sum_z(g)) for k, g in groupby(sorted_edge_list, lambda t: (t[0], t[1]))]
+        aggregated_graph.add_weighted_edges_from(weighted_edge_list)
 
-        return ret
+        return aggregated_graph
+
 
 
 def infomap(graph):
