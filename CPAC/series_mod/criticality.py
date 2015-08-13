@@ -465,7 +465,7 @@ def avalanche_detec(cluster_file):
                         avalanche_id_total[(time_slice==cluster),t_+1] = avalanche_id_num
                         time_slice_fut[time_slice_fut==value] = 0
                     
-                    avalanche_id_num = avalanche_id_num +1
+                    avalanche_id_num = avalanche_id_num +1 # Ivan: Would be interesting to define the length of sustaining avalanches
         else:
             time_slice = cluster_data[:,:,:,t_]          
             time_slice_fut = cluster_data[:,:,:,t_+1]
