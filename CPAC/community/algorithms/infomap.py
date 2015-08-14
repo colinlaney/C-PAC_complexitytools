@@ -5,10 +5,7 @@ This module implements th infomap community detection method
 #__all__ = [""]
 __author__ = """Florian Gesser (gesser.florian@googlemail.com)"""
 
-NODE_FREQUENCY  = 'NODE_FREQUENCY'
-EXIT            = 'EXIT'
-EPSILON_REDUCED = 1.0e-10
-PASS_MAX        = -1
+
 
 import math
 from itertools import groupby
@@ -19,6 +16,13 @@ import networkx as nx
 
 sys.path.append("/Users/florian/Data/Pending/GSOC/code/community_evaluation/mini_pipeline_community/")
 import buildTestGraph as btg
+
+
+NODE_FREQUENCY  = 'NODE_FREQUENCY'
+EXIT            = 'EXIT'
+EPSILON_REDUCED = 1.0e-10
+PASS_MAX        = sys.maxint #2^63 - 1 on 64bit machines
+
 
 class Partition(object):
     """Represents a partition of the graph"""
