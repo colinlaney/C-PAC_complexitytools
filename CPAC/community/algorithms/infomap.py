@@ -170,6 +170,7 @@ class Partition(object):
             nb_pass_done += 1
 
             for index, curr_node in enumerate(self.graph):
+                curr_mod = self.code_length
                 #pick   = randomSequence[index]
                 pick = curr_node
                 Nlinks = len(self.graph.neighbors(pick))
@@ -244,11 +245,11 @@ class Partition(object):
 
                     self.modules[pick] = bestM
 
+
             if (curr_mod - self.code_length ) < EPSILON_REDUCED:
                 break
 
     def first_pass(self, iteration):
-        #while passes_done != PASS_MAX
         self.determine_best_new_module(iteration)
 
 
