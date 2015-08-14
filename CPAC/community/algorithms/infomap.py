@@ -29,6 +29,11 @@ class Partition(object):
     def __init__(self, graph):
         super(Partition, self).__init__()
         self.graph         = graph
+
+        #pruge self loops
+        loop_edges = self.graph.selfloop_edges()
+        self.graph.remove_edges_from(loop_edges)
+
         #self.modules = dict(zip(self.graph, range(self.graph.nodes()[0], graph.number_of_nodes())))
         self.modules = dict([])
 
@@ -39,7 +44,7 @@ class Partition(object):
 
         self.Nnode         = self.graph.number_of_nodes()
         self.Nmod          = self.Nnode
-        self.degree        = sum(self.graph.degree().values())
+        self.degree        = sum(self.graph.degree(weight="weight").values())
         self.inverseDegree = 1.0/self.degree
 
 
@@ -58,11 +63,14 @@ class Partition(object):
     def init(self, at_beginning=False):
 
         #TODO  what has to change when this gets called in later iterations?
+        #pruge self loops
+        loop_edges = self.graph.selfloop_edges()
+        self.graph.remove_edges_from(loop_edges)
 
         self.modules = dict([])
         self.Nnode         = self.graph.number_of_nodes()
         self.Nmod          = self.Nnode
-        self.degree        = sum(self.graph.degree().values())
+        self.degree        = sum(self.graph.degree(weight="weight").values())
         self.inverseDegree = 1.0/self.degree
 
         count = 0
@@ -78,10 +86,10 @@ class Partition(object):
 
             Later: Exit := totoal weight of links to other modules
         """
-        degrees={i:self.graph.degree(i) for i in self.graph}
+        degrees={i:self.graph.degree(i, weight="weight") for i in self.graph}
         nx.set_node_attributes(self.graph, 'EXIT', degrees)
 
-        self.nodeDegree_log_nodeDegree = sum([self.plogp(self.graph.degree(node)) for node in self.graph])
+        self.nodeDegree_log_nodeDegree = sum([self.plogp(self.graph.degree(node, weight="weight")) for node in self.graph])
 
         for index, node in enumerate(self.graph):
             node_i_exit   = self.graph.node[node][EXIT]
@@ -257,6 +265,8 @@ def infomap(graph):
     partition = Partition(graph)
     partition.init(True)
 
+    #uncompressedCodeLength = partition.code_length
+
     parition_list = list()
     partition.first_pass(iteration)
     best_partition = partition.modules
@@ -274,8 +284,10 @@ def infomap(graph):
         partition.first_pass(iteration)
         best_partition = partition.modules
         new_codelength = partition.code_length
-        if codelength - new_codelength < EPSILON_REDUCED :
+        if ( (codelength - new_codelength) < EPSILON_REDUCED) or (new_codelength < 1.0):
+            ret_code = codelength
             break
+        #appending and renumbering was twisted
         partition.modules = partition.renumber_modules(best_partition)
         parition_list.append(partition.modules)
         codelength = new_codelength
@@ -285,7 +297,7 @@ def infomap(graph):
         partition.init(True)
 
         iteration += 1
-    return parition_list[:]
+    return parition_list[:], ret_code
 
 
 def main():
@@ -293,10 +305,14 @@ def main():
     #graph = btg.build_graph()
     import networkx as nx
     graph = nx.karate_club_graph()
+    #graph = nx.read_gpickle("/Users/florian/Desktop/testgraph/testgraph")
     # call to main algorithm method
-    graph_partition = infomap(graph)
-    print graph_partition
-    print len(set(graph_partition[0].values()))
+    graph_partition, codelength = infomap(graph)
+    #print graph_partition
+    print "Final Codelength: " + str(codelength)
+    #print "Compressed by: " + str((100.0*(1.0-codelength/uncompressedCodeLength)))
+    print "Levels: " + str(len(graph_partition))
+    print "Modules found: " + str(len(set(graph_partition[len(graph_partition)-1].values())))
 
 if __name__ == '__main__':
     main()
