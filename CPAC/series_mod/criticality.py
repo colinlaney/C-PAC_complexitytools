@@ -180,7 +180,7 @@ def cluster_detection(in_file):
 
 #img_new = nb.Nifti1Image(cluster_graph_data_total, header=img.get_header(), affine=img.get_affine())
 ## Reconstruct the 4D volume
-#cond_rm_file = os.path.join(os.getcwd(), 'cgd_4D.nii.gz')
+#cond_rm_file = os.path.join(os.getcwd(), 'cluster_1V.nii.gz')
 #img_new.to_filename(cond_rm_file)
 
 
@@ -291,7 +291,7 @@ def cluster_detection_mod2(in_file):
     
 #img_new = nb.Nifti1Image(cluster_graph_data_total, header=img.get_header(), affine=img.get_affine())
 ## Reconstruct the 4D volume
-#cond_rm_file = os.path.join(os.getcwd(), 'cgd_4D_2V.nii.gz')
+#cond_rm_file = os.path.join(os.getcwd(), 'cluster_2V.nii.gz')
 #img_new.to_filename(cond_rm_file)    
     
     
@@ -430,61 +430,103 @@ def avalanche_detec(cluster_file):
     
     import numpy as np
     import nibabel as nb
+    import os
 
     # Treat fMRI image
     img = nb.load(cluster_file)
     cluster_data = img.get_data()
-    
-    
-        
+  
     (n_x, n_y, n_z, n_t) = cluster_data.shape
-    
     
     avalanche_id_total = np.zeros((n_x, n_y, n_z, n_t))
     avalanche_id_num = 1   
             
     for t_ in range(n_t):
-        
-        if t_ == n_t:
-            pass    
-        elif t_ == 0: #if first timestep, all are candidates
-            time_slice = cluster_data[:,:,:,t_]          
-            time_slice_fut = cluster_data[:,:,:,t_+1]  
-            for cluster in np.unique(cluster_data[:,:,:,t_])[1:]: #iterate over clusters
-                if np.count_nonzero(time_slice_fut[(time_slice==cluster)]) >= 1 :
-                    
-                    
-                    assign id_avalanche in id_aval_total to this cluster and all the clusters intersected in t+1
-                    delete cluster and clusters in t+1 from cluster data
-                    
-                    #PROBABLY WRONG:
-                    avalanche_id_total[(time_slice==cluster),t_] = avalanche_id_num
-                    time_slice[(time_slice==cluster)] = 0 #delete the used cluster
-                    
-                    for value in time_slice_fut[(time_slice==cluster)]: #assing and delete the used clusters of the t+1
-                        avalanche_id_total[(time_slice==cluster),t_+1] = avalanche_id_num
-                        time_slice_fut[time_slice_fut==value] = 0
-                    
-                    avalanche_id_num = avalanche_id_num +1 # Ivan: Would be interesting to define the length of sustaining avalanches
-        else:
+     
+        if t_ == 0: #if first timestep, all are candidates
             time_slice = cluster_data[:,:,:,t_]          
             time_slice_fut = cluster_data[:,:,:,t_+1]
-            for cluster in np.unique(cluster_data[:,:,:,t_])[1:]:
-                if aval_id != 0:
-                    if intersect cluster in cluster_data t+1 != 0 :
-                        assign id_avalanche in id_aval_total to this cluster and all the clusters intersected in t+1
-                        delete cluster and clusters in t+1 from cluster data
-                if aval_id = 0 and t-1 = 0:
-                    if intersect cluster in cluster_data t+1 != 0 :
-                        assign id_avalanche in id_aval_total to this cluster and all the clusters intersected in t+1
-                        delete cluster and clusters in t+1 from cluster data
             
+            avalanche_id_now = avalanche_id_total[:,:,:,t_]   
+            avalanche_id_fut = avalanche_id_total[:,:,:,t_+1]   
+            
+            
+            for cluster in np.unique(cluster_data[:,:,:,t_])[1:]: #iterate over clusters
+                # NEW AVALANCHE CASE
+                if np.count_nonzero(time_slice_fut[(time_slice==cluster)]) >= 1 :                
+                    avalanche_id_now[(time_slice==cluster)] = avalanche_id_num # assign the cluster a aval_id
+                    #time_slice[(time_slice==cluster)] = 0 #delete the used cluster
+                    
+                    for value in np.unique(time_slice_fut[(time_slice==cluster)])[1:]: #assing and delete the used clusters of the t+1
+                        avalanche_id_fut[(time_slice_fut==value)] = avalanche_id_num
+                        #time_slice_fut[time_slice_fut==value] = 0 #delete used future clusters
+                    
+                    avalanche_id_num = avalanche_id_num +1 # Ivan: Would be interesting to define the length of sustaining avalanches
+                    
+                    avalanche_id_total[:,:,:,t_] = avalanche_id_now
+                    avalanche_id_total[:,:,:,t_+1] = avalanche_id_fut
+                    
+                    
+        elif t_ < (n_t-1):  #if not first timestep, check previous
+            print t_
+            #time_slice_past = cluster_data[:,:,:,t_-1]
+            time_slice = cluster_data[:,:,:,t_]          
+            time_slice_fut = cluster_data[:,:,:,t_+1]
+            
+            avalanche_id_now = avalanche_id_total[:,:,:,t_]   
+            avalanche_id_fut = avalanche_id_total[:,:,:,t_+1] 
+            
+            for cluster in np.unique(cluster_data[:,:,:,t_])[1:]:
+                # PREVIOUS AVALANCHE CASE
+                if np.count_nonzero(avalanche_id_now[(time_slice==cluster)]) != 0: 
+                    if np.count_nonzero(time_slice_fut[(time_slice==cluster)]) >= 1 :
+                                          
+#                        avalanche_id_now[(time_slice==cluster)] = avalanche_id_num # assign the cluster a aval_id
+#                        time_slice[(time_slice==cluster)] = 0 #delete the used cluster
+                        
+                        this_avalanche = avalanche_id_now[(time_slice==cluster)][0]
+                        
+                        for value in np.unique(time_slice_fut[(time_slice==cluster)])[1:]: #assing and delete the used clusters of the t+1
+                            avalanche_id_fut[(time_slice_fut==value)] = this_avalanche
+                            #time_slice_fut[time_slice_fut==value] = 0
+                        
+                        avalanche_id_total[:,:,:,t_+1] = avalanche_id_fut 
+                
+                # Maybe this is wrong, since if it has a positive intersect with the past, already is part of the avalanches. TAKE A LOOK ON THIS!!
+                # NEW AVALANCHE CASE ## HERE MAYBE PROBLEMS
+                elif np.count_nonzero(avalanche_id_now[(time_slice==cluster)]) == 0: #and np.count_nonzero(time_slice_past[(time_slice==cluster)]) == 0:
+                    if np.count_nonzero(time_slice_fut[(time_slice==cluster)]) >= 1 :
+                                          
+#                        avalanche_id_now[(time_slice==cluster)] = avalanche_id_num # assign the cluster a aval_id
+#                        time_slice[(time_slice==cluster)] = 0 #delete the used cluster
+                        
+                        avalanche_id_now[(time_slice==cluster)] = avalanche_id_num
+                        
+                        for value in np.unique(time_slice_fut[(time_slice==cluster)])[1:]: #assing and delete the used clusters of the t+1
+                            avalanche_id_fut[(time_slice_fut==value)] = avalanche_id_num
+                            
+                        avalanche_id_num = avalanche_id_num + 1
+                   
+                        avalanche_id_total[:,:,:,t_] = avalanche_id_now
+                        avalanche_id_total[:,:,:,t_+1] = avalanche_id_fut    
     
     
-for cluster in np.unique(cluster_data[:,:,:,t_])[1:]:     
-     if np.count_nonzero(time_slice_fut[(time_slice==cluster)]) >= 1:
-         print cluster 
-         print time_slice_fut[(time_slice==cluster)]
-  
+    img_new = nb.Nifti1Image(avalanche_id_total, header=img.get_header(), affine=img.get_affine())
+    # Reconstruct the 4D volume
+    cond_rm_file = os.path.join(os.getcwd(), 'avalanche1v.nii.gz')
+    img_new.to_filename(cond_rm_file)  
+    
+    return avalanche_id_total    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
