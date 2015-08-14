@@ -5,10 +5,7 @@ This module implements th infomap community detection method
 #__all__ = [""]
 __author__ = """Florian Gesser (gesser.florian@googlemail.com)"""
 
-NODE_FREQUENCY  = 'NODE_FREQUENCY'
-EXIT            = 'EXIT'
-EPSILON_REDUCED = 1.0e-10
-PASS_MAX        = -1
+
 
 import math
 from itertools import groupby
@@ -20,11 +17,23 @@ import networkx as nx
 sys.path.append("/Users/florian/Data/Pending/GSOC/code/community_evaluation/mini_pipeline_community/")
 import buildTestGraph as btg
 
+
+NODE_FREQUENCY  = 'NODE_FREQUENCY'
+EXIT            = 'EXIT'
+EPSILON_REDUCED = 1.0e-10
+PASS_MAX        = sys.maxint #2^63 - 1 on 64bit machines
+
+
 class Partition(object):
     """Represents a partition of the graph"""
     def __init__(self, graph):
         super(Partition, self).__init__()
         self.graph         = graph
+
+        #pruge self loops
+        loop_edges = self.graph.selfloop_edges()
+        self.graph.remove_edges_from(loop_edges)
+
         #self.modules = dict(zip(self.graph, range(self.graph.nodes()[0], graph.number_of_nodes())))
         self.modules = dict([])
 
@@ -35,7 +44,7 @@ class Partition(object):
 
         self.Nnode         = self.graph.number_of_nodes()
         self.Nmod          = self.Nnode
-        self.degree        = sum(self.graph.degree().values())
+        self.degree        = sum(self.graph.degree(weight="weight").values())
         self.inverseDegree = 1.0/self.degree
 
 
@@ -54,11 +63,14 @@ class Partition(object):
     def init(self, at_beginning=False):
 
         #TODO  what has to change when this gets called in later iterations?
+        #pruge self loops
+        loop_edges = self.graph.selfloop_edges()
+        self.graph.remove_edges_from(loop_edges)
 
         self.modules = dict([])
         self.Nnode         = self.graph.number_of_nodes()
         self.Nmod          = self.Nnode
-        self.degree        = sum(self.graph.degree().values())
+        self.degree        = sum(self.graph.degree(weight="weight").values())
         self.inverseDegree = 1.0/self.degree
 
         count = 0
@@ -74,10 +86,10 @@ class Partition(object):
 
             Later: Exit := totoal weight of links to other modules
         """
-        degrees={i:self.graph.degree(i) for i in self.graph}
+        degrees={i:self.graph.degree(i, weight="weight") for i in self.graph}
         nx.set_node_attributes(self.graph, 'EXIT', degrees)
 
-        self.nodeDegree_log_nodeDegree = sum([self.plogp(self.graph.degree(node)) for node in self.graph])
+        self.nodeDegree_log_nodeDegree = sum([self.plogp(self.graph.degree(node, weight="weight")) for node in self.graph])
 
         for index, node in enumerate(self.graph):
             node_i_exit   = self.graph.node[node][EXIT]
@@ -115,12 +127,27 @@ class Partition(object):
         return weights
 
     def renumber_modules(self, current_modules):
+        # ret = current_modules.copy()
+        # vals = set(current_modules.values())
+        # mapping = dict(zip(vals,range(len(vals))))
+        #
+        # for key in current_modules.keys():
+        #     ret[key] = mapping[current_modules[key]]
+        #
+        # return ret
+        #
+        count = 0
         ret = current_modules.copy()
-        vals = set(current_modules.values())
-        mapping = dict(zip(vals,range(len(vals))))
+        new_values = dict([])
 
-        for key in current_modules.keys():
-            ret[key] = mapping[current_modules[key]]
+        for key in current_modules.keys() :
+            value = current_modules[key]
+            new_value = new_values.get(value, -1)
+            if new_value == -1 :
+                new_values[value] = count
+                new_value = count
+                count = count + 1
+            ret[key] = new_value
 
         return ret
 
@@ -137,7 +164,7 @@ class Partition(object):
 
         curr_mod = self.code_length
 
-        while modif and nb_pass_done != PASS_MAX:
+        while (modif and nb_pass_done != PASS_MAX):
             curr_mod = self.code_length
             modif = False
             nb_pass_done += 1
@@ -227,19 +254,30 @@ class Partition(object):
 
 
 
-    def second_pass(self):
-        aggregated_graph = nx.Graph()
+    def second_pass(self, current_partition):
+        # aggregated_graph = nx.Graph()
+        #
+        # # The new graph consists of as many "supernodes" as there are partitions
+        # aggregated_graph.add_nodes_from(set(self.modules.values()))
+        # # make edges between communites, bundle more edges between nodes in weight attribute
+        # edge_list=[(self.modules[node1], self.modules[node2], attr.get('weight', 1) ) for node1, node2, attr in self.graph.edges(data=True)]
+        # sorted_edge_list = sorted(edge_list)
+        # sum_z = lambda tuples: sum(t[2] for t in tuples)
+        # weighted_edge_list = [(k[0], k[1], sum_z(g)) for k, g in groupby(sorted_edge_list, lambda t: (t[0], t[1]))]
+        # aggregated_graph.add_weighted_edges_from(weighted_edge_list)
+        #
+        # return aggregated_graph
 
-        # The new graph consists of as many "supernodes" as there are partitions
-        aggregated_graph.add_nodes_from(set(self.modules.values()))
-        # make edges between communites, bundle more edges between nodes in weight attribute
-        edge_list=[(self.modules[node1], self.modules[node2], attr.get('weight', 1) ) for node1, node2, attr in self.graph.edges(data=True)]
-        sorted_edge_list = sorted(edge_list)
-        sum_z = lambda tuples: sum(t[2] for t in tuples)
-        weighted_edge_list = [(k[0], k[1], sum_z(g)) for k, g in groupby(sorted_edge_list, lambda t: (t[0], t[1]))]
-        aggregated_graph.add_weighted_edges_from(weighted_edge_list)
+        ret = nx.Graph()
+        ret.add_nodes_from(current_partition.values())
 
-        return aggregated_graph
+        for node1, node2, datas in self.graph.edges_iter(data = True) :
+            weight = datas.get("weight", 1)
+            com1 = current_partition[node1]
+            com2 = current_partition[node2]
+            w_prec = ret.get_edge_data(com1, com2, {"weight":0}).get("weight", 1)
+            ret.add_edge(com1, com2, weight = w_prec + weight)
+        return ret
 
 
 
@@ -253,14 +291,15 @@ def infomap(graph):
     partition = Partition(graph)
     partition.init(True)
 
+    #uncompressedCodeLength = partition.code_length
+
     parition_list = list()
     partition.first_pass(iteration)
-    best_partition = partition.modules
     new_codelength = partition.code_length
-    partition.modules = partition.renumber_modules(best_partition)
-    parition_list.append(partition.modules)
+    best_partition= partition.renumber_modules(partition.modules)
+    parition_list.append(best_partition)
     codelength = new_codelength
-    current_graph = partition.second_pass()
+    current_graph = partition.second_pass(best_partition)
     partition.graph = current_graph
     partition.init(True)
 
@@ -268,20 +307,19 @@ def infomap(graph):
 
     while True:
         partition.first_pass(iteration)
-        best_partition = partition.modules
         new_codelength = partition.code_length
-        if codelength - new_codelength < EPSILON_REDUCED :
+        if ( (codelength - new_codelength) < EPSILON_REDUCED) or (new_codelength < 1.0):
+            ret_code = codelength
             break
-        partition.modules = partition.renumber_modules(best_partition)
-        parition_list.append(partition.modules)
+        best_partition = partition.renumber_modules(partition.modules)
+        parition_list.append(best_partition)
         codelength = new_codelength
-        current_graph = partition.second_pass()
-        codelength = new_codelength
+        current_graph = partition.second_pass(best_partition)
         partition.graph = current_graph
         partition.init(True)
 
         iteration += 1
-    return parition_list[:]
+    return parition_list[:], ret_code
 
 
 def main():
@@ -289,10 +327,14 @@ def main():
     #graph = btg.build_graph()
     import networkx as nx
     graph = nx.karate_club_graph()
+    #graph = nx.read_gpickle("/Users/florian/Desktop/testgraph/testgraph")
     # call to main algorithm method
-    graph_partition = infomap(graph)
+    graph_partition, codelength = infomap(graph)
     print graph_partition
-    print len(set(graph_partition[0].values()))
+    print "Final Codelength: " + str(codelength)
+    #print "Compressed by: " + str((100.0*(1.0-codelength/uncompressedCodeLength)))
+    print "Levels: " + str(len(graph_partition))
+    print "Modules found: " + str(len(set(graph_partition[len(graph_partition)-1].values())))
 
 if __name__ == '__main__':
     main()
