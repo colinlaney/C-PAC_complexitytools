@@ -513,7 +513,7 @@ def avalanche_detec(cluster_file):
     
     img_new = nb.Nifti1Image(avalanche_id_total, header=img.get_header(), affine=img.get_affine())
     # Reconstruct the 4D volume
-    cond_rm_file = os.path.join(os.getcwd(), 'avalanche1v.nii.gz')
+    cond_rm_file = os.path.join(os.getcwd(), 'avalanche.nii.gz')
     img_new.to_filename(cond_rm_file)  
     
     return avalanche_id_total    

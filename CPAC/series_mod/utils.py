@@ -1,13 +1,4 @@
-#in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
-#mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
-
-# THIS SCRIPT USES Nvar * Ntimepoints LIKE MATRIX STRUCTURES
-
-#from matplotlib.pylab import *
-#matshow(corr_mat);colorbar();clim(-1,1);show()
-#matshow(pcorr_mat);colorbar();clim(-1,1);show()
-#matshow(MI_mat);colorbar();clim(0,np.max(MI_mat));show()
-
+# THIS SCRIPT USES Nvar * Ntimepoints like MATRIX STRUCTURES
 
 def compute_corr(in_file):
 
@@ -62,8 +53,6 @@ def compute_MI(in_file):
             MI_mat[i_,j_] = mutual_information(data[i_,:],data[j_,:])
         
     np.save(in_file[:-7]+'_MI.npy', MI_mat)
-        
-    ## CHECK THE MATRICES SHAPE AND RESULTS
 
     return MI_mat
     
@@ -93,11 +82,11 @@ def compute_TE(in_file, mask_file = 0, voxelwise = 0):
     
     
     np.save(in_file[:-7]+'_TE.npy', TE_mat)
-    #make_image_from_bin( in_file, TE_mat, mask_file)
     
     return TE_mat
 
     
+# NOT USED    
 def compute_ApEn(in_file, m_param, r_param):
 
     from CPAC.series_mod import gen_voxel_timeseries
@@ -108,8 +97,6 @@ def compute_ApEn(in_file, m_param, r_param):
     ApEn_vector = ap_entropy(data,m_param,r_param)
     
     np.savetxt(in_file[:-7]+'_ApEn.txt', ApEn_vector)
-    #make_image_from_bin( in_file, ApEn_vector, mask_file )    
-
 
     return ApEn_vector
 
@@ -188,7 +175,6 @@ def gen_roi_timeseries(in_file, mask_file):
     data_array = ROI_number * timepoints
 
     """
-    import os
     import numpy as np    
     import nibabel as nb
     
@@ -291,16 +277,6 @@ def corr(timeseries):
   
 
   
-#def autocorr(timeseries):
-#    
-#    from scipy.signal import correlation   
-#    
-#    autocorr_matrix = numpy.corrcoef(timeseries,'full')
-#    
-#    return result[autocorr_matrix.size/2:]
-
- 
-
 #be careful, it gets an array and takes a variable as a column!! 
 def partial_corr(C):
     """
@@ -498,47 +474,6 @@ def transfer_entropy(X, Y, lag):
         
     return TE_from_j_to_i    
     
-def gtetruncated(Y,X,Z):
-
-    # X=N x 1  Y=N x m  Z=N x m'
-    # te = gaussian tranfer entropy  Y -> X | Z
-    # Y=series[:,:,0].T
-    # X=Y[:,0].copy()
-    # Z=series[:,:,1].T
-
-    import numpy as np
-
-    #Z = Z.T
-    #Y = Y.T
-    
-    [Nobs, nvar] = np.shape(Z)
-    
-    
-    
-    xzy = np.dot(X.T, np.array(np.hstack((Y, Z)))) / (Nobs-1)
-    #xzy = np.expand_dims(xzy,0)
-    
-    covxy = np.cov(np.array(np.hstack((Y, Z))).T)    
-    xzy_lstsq_covxy = np.linalg.lstsq(covxy.T,xzy.T)[0].T
-    xzy_lstsq_covxy_dot_zxy = np.dot(xzy_lstsq_covxy,xzy.T)
-        
-    sigmazy = np.var(X) - xzy_lstsq_covxy_dot_zxy
-    #sigmazy=var(X)-xzy/cov([Y Z])*xzy';
-
-    xz = np.dot(X.T, Z) / (Nobs-1)
-    #xz = np.expand_dims(xz,0)
-
-    covz = np.cov(Z.T)   
-    xz_lstsq_covz = np.linalg.lstsq(covz.T,xz.T)[0].T
-    xz_lstsq_covz_dot_xz = np.dot(xz_lstsq_covz,xz.T)
-    
-    sigmaz = (np.var(X) - xz_lstsq_covz_dot_xz)
-    #sigmaz=var(X)-xz/cov(Z)*xz'; 
-    
-    te = 0.5 * np.log(sigmaz / sigmazy)
-    
-    return te, sigmaz, sigmazy   
-    
 #def entropy(*X):
 #    n_insctances = len(X[0])
 #    H = 0
@@ -555,61 +490,61 @@ def gtetruncated(Y,X,Z):
 
 
 
-def ap_entropy(X, M, R):
-        
-    import numpy as np
-	
-    N = len(X)
-    
-    Em = embed_seq(X, 1, M)	
-    Emp = embed_seq(X, 1, M + 1)
-    
-    Cm, Cmp = np.zeros(N - M + 1), np.zeros(N - M)
+#def ap_entropy(X, M, R):
+#        
+#    import numpy as np
+#	
+#    N = len(X)
+#    
+#    Em = embed_seq(X, 1, M)	
+#    Emp = embed_seq(X, 1, M + 1)
+#    
+#    Cm, Cmp = np.zeros(N - M + 1), np.zeros(N - M)
+#
+#    for i in xrange(0, N - M):
+#        for j in xrange(i, N - M):
+#            if in_range(Em[i].any(), Em[j].any(), R):
+#                Cm[i] += 1												
+#                Cm[j] += 1
+#                if abs(Emp[i][-1] - Emp[j][-1]) <= R:
+#                    Cmp[i] += 1
+#                    Cmp[j] += 1
+#        if in_range(Em[i].any(), Em[N-M].any(), R):
+#            Cm[i] += 1
+#            Cm[N-M] += 1
+#	
+#    Cm[N - M] += 1 
+#    Cm /= (N - M +1 )
+#    Cmp /= ( N - M )
+#    Phi_m, Phi_mp = sum(np.log(Cm)),  sum(np.log(Cmp))
+#
+#    ApEn = (Phi_m - Phi_mp) / (N - M)
+#
+#    return ApEn
 
-    for i in xrange(0, N - M):
-        for j in xrange(i, N - M):
-            if in_range(Em[i].any(), Em[j].any(), R):
-                Cm[i] += 1												
-                Cm[j] += 1
-                if abs(Emp[i][-1] - Emp[j][-1]) <= R:
-                    Cmp[i] += 1
-                    Cmp[j] += 1
-        if in_range(Em[i].any(), Em[N-M].any(), R):
-            Cm[i] += 1
-            Cm[N-M] += 1
-	
-    Cm[N - M] += 1 
-    Cm /= (N - M +1 )
-    Cmp /= ( N - M )
-    Phi_m, Phi_mp = sum(np.log(Cm)),  sum(np.log(Cmp))
-
-    ApEn = (Phi_m - Phi_mp) / (N - M)
-
-    return ApEn
-
-def embed_seq(X,Tau,D):
-    
-    import numpy as np
-    
-    N = len(X)
-
-    Y=np.zeros((N - (D - 1) * Tau, D))
-    for i in xrange(0, N - (D - 1) * Tau):
-        for j in xrange(0, D):
-            Y[i][j] = X[i + j * Tau]
-    return Y
-
-
-def in_range(i,j,k):
-    """
-    Returns True if i in [j, k[
-    * 0 <= i, j, k < MAX
-    * no order is assumed between j and k: we can have k < j
-    """
-    if j <= k:
-        return j <= i < k
-    # j > k :
-    return j <= i or i < k
+#def embed_seq(X,Tau,D):
+#    
+#    import numpy as np
+#    
+#    N = len(X)
+#
+#    Y=np.zeros((N - (D - 1) * Tau, D))
+#    for i in xrange(0, N - (D - 1) * Tau):
+#        for j in xrange(0, D):
+#            Y[i][j] = X[i + j * Tau]
+#    return Y
+#
+#
+#def in_range(i,j,k):
+#    """
+#    Returns True if i in [j, k[
+#    * 0 <= i, j, k < MAX
+#    * no order is assumed between j and k: we can have k < j
+#    """
+#    if j <= k:
+#        return j <= i < k
+#    # j > k :
+#    return j <= i or i < k
 
 
 
@@ -658,7 +593,6 @@ def PLV(X, Y):
     """
     import numpy as np
     import scipy.signal.signaltools as sigtool
-
 
     htx = sigtool.hilbert(X)
     hty = sigtool.hilbert(Y)
