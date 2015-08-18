@@ -162,8 +162,8 @@ class Partition(object):
         randomSequence = self.get_random_permutation_of_nodes()
 
 
-        #for index, curr_node in enumerate(self.graph):
-        for index, curr_node in enumerate(randomSequence):
+        for index, curr_node in enumerate(self.graph):
+        #for index, curr_node in enumerate(randomSequence):
             #pick   = randomSequence[index]
             pick = curr_node
 
@@ -204,10 +204,10 @@ class Partition(object):
             #      wNtoM[zaehler].
 
             import random
-            keys = wNtoM.keys()
-            random.shuffle(keys)
-            for key in keys:
-                print wNtoM[key]
+            # keys = wNtoM.keys()
+            # random.shuffle(keys)
+            # for key in keys:
+            #     print wNtoM[key]
 
             items = wNtoM.items()
             random.shuffle(items)
@@ -409,13 +409,13 @@ def main():
     #test prep
     #graph = btg.build_graph()
     import networkx as nx
-    graph = nx.karate_club_graph()
+    #graph = nx.karate_club_graph()
     #graph = nx.read_gpickle("/Users/florian/Desktop/testgraph/testgraph")
 
     #fh=open("/Users/florian/Desktop/com-amazon.ungraph.txt")
     #graph = nx.read_edgelist(fh, nodetype=int)
 
-    #graph = girvan(4)
+    graph = girvan(4)
 
     # call to main algorithm method
     mapping = infomap(graph)
