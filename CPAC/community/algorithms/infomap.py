@@ -182,7 +182,10 @@ class Partition(object):
             #pick = curr_node
 
             # TODO in second phase wrong link count due to self loops
-            Nlinks = len(self.graph.neighbors(pick))
+
+            #Nlinks = len(self.graph.neighbors(pick))
+            Nlinks = len(list(filter(lambda x: x != pick, self.graph.neighbors(pick))))
+
             wNtoM  = self.neighbourhood_link_strength(pick)
             fromM  = self.modules[pick]
             #that is wrong, it would sum up all the edges from the neighbour
