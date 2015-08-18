@@ -156,17 +156,14 @@ class Partition(object):
 
         return ret
 
-	for key in communities.keys():
-		ret[key] = mapping[communities[key]]
 
-	return ret
 
     def determine_best_new_module(self, iteration, stat):
         randomSequence = self.get_random_permutation_of_nodes()
 
 
-        for index, curr_node in enumerate(self.graph):
-        #for index, curr_node in enumerate(randomSequence):
+        #for index, curr_node in enumerate(self.graph):
+        for index, curr_node in enumerate(randomSequence):
             #pick   = randomSequence[index]
             pick = curr_node
 
@@ -198,7 +195,7 @@ class Partition(object):
             NmodLinks = len((wNtoM.keys()))
 
 
-            # TODO randomize neighbor links + sort the nodes to exit mapping in second step
+            # TODO randomize neighbor links + sort the nodes to exit mapping in second step?
             # zaehler = 0
             # for mod, weight in wNtoM.items():
             #     randPos = np.random.permutation(len(wNtoM)
@@ -207,10 +204,10 @@ class Partition(object):
             #      wNtoM[zaehler].
 
             import random
-            # keys = wNtoM.keys()
-            # random.shuffle(keys)
-            # for key in keys:
-            #     print wNtoM[key]
+            keys = wNtoM.keys()
+            random.shuffle(keys)
+            for key in keys:
+                print wNtoM[key]
 
             items = wNtoM.items()
             random.shuffle(items)
@@ -349,11 +346,16 @@ class Partition(object):
             self.exit = self.plogp(self.exitDegree)
             self.code_length = self.exit - 2.0 * self.exit_log_exit + self.degree_log_degree - self.nodeDegree_log_nodeDegree
 
+    def generate_module_mapping(self, module_hierarchy, level):
+        module_mapping = module_hierarchy[0].copy()
+        for index in range(1, level + 1):
+            for node, module in module_mapping.items():
+                module_mapping[node] = module_hierarchy[index][module]
+        return module_mapping
 
 
 
-
-def infomap(graph):
+def iteration_loop(graph):
     #import pdb; pdb.set_trace()
 
     # partition.move()
@@ -395,8 +397,13 @@ def infomap(graph):
         #partition.init(True)
 
         iteration += 1
-    return parition_list[:], ret_code
+    return parition_list[:], partition
 
+
+def infomap(graph):
+    module_hierachy, handle = iteration_loop(graph)
+
+    return handle.generate_module_mapping(module_hierachy, len(module_hierachy)-1)
 
 def main():
     #test prep
@@ -409,14 +416,19 @@ def main():
     #graph = nx.read_edgelist(fh, nodetype=int)
 
     #graph = girvan(4)
+
     # call to main algorithm method
-    graph_partition, codelength = infomap(graph)
-    print graph_partition
-    print "Final Codelength: " + str(codelength)
+    mapping = infomap(graph)
+
+    print mapping
+    nx.set_node_attributes(graph, 'finalmodule', mapping)
+    drawNetwork(graph)
+
+    #print "Final Codelength: " + str(codelength)
     #print "Compressed by: " + str((100.0*(1.0-codelength/uncompressedCodeLength)))
-    print "Levels: " + str(len(graph_partition))
-    print "Modules found last level: " + str(len(set(graph_partition[len(graph_partition)-2].values())))
-    print "Modules found last level: " + str(len(set(graph_partition[len(graph_partition)-1].values())))
+    #print "Levels: " + str(len(graph_partition))
+    #print "Modules found last level: " + str(len(set(graph_partition[len(graph_partition)-2].values())))
+    #print "Modules found last level: " + str(len(set(graph_partition[len(graph_partition)-1].values())))
 
 def girvan(zout):
     pout = float(zout)/96.
@@ -438,6 +450,47 @@ def girvan(zout):
     return graph
 
 
+def drawNetwork(G):
+    import matplotlib.pyplot as plt
+
+    import matplotlib.colors as colors
+    # position map
+    pos = nx.spring_layout(G)
+    # community ids
+    communities = [v for k,v in nx.get_node_attributes(G, 'finalmodule').items()]
+    numCommunities = max(communities) + 1
+    # color map from http://colorbrewer2.org/
+    cmapLight = colors.ListedColormap(['#a6cee3', '#b2df8a', '#fb9a99', '#fdbf6f', '#cab2d6'], 'indexed', numCommunities)
+    cmapDark = colors.ListedColormap(['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a'], 'indexed', numCommunities)
+
+    # edges
+    nx.draw_networkx_edges(G, pos)
+
+    # nodes
+    nodeCollection = nx.draw_networkx_nodes(G,
+        pos = pos,
+        node_color = communities,
+        cmap = cmapLight
+    )
+    # set node border color to the darker shade
+    darkColors = [cmapDark(v) for v in communities]
+    nodeCollection.set_edgecolor(darkColors)
+
+    # Print node labels separately instead
+    for n in G.nodes_iter():
+        plt.annotate(n,
+            xy = pos[n],
+            textcoords = 'offset points',
+            horizontalalignment = 'center',
+            verticalalignment = 'center',
+            xytext = [0, 2],
+            color = cmapDark(communities[n])
+        )
+
+    plt.axis('off')
+    # plt.savefig("karate.png")
+    plt.show()
+    print "mash allah"
 
 if __name__ == '__main__':
     main()
