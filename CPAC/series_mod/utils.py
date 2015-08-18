@@ -1,6 +1,20 @@
 # THIS SCRIPT USES Nvar * Ntimepoints like MATRIX STRUCTURES
 
 def compute_corr(in_file):
+    """
+    Computes Pearson Correlation from a 1D datafile and returns a np.array.
+    
+    Parameters
+    ----------
+
+    in_file : 1D file
+
+    Returns
+    -------
+
+    data_array =  voxel(x,y,z) * voxel(x,y,z)
+
+    """
 
     from CPAC.series_mod import corr  
     import numpy as np
@@ -16,6 +30,20 @@ def compute_corr(in_file):
     return corr_mat
     
 def compute_pcorr(in_file):
+    """
+    Computes Partial Correlation from a 1D datafile and returns a np.array.
+    
+    Parameters
+    ----------
+
+    in_file : 1D file
+
+    Returns
+    -------
+
+    data_array =  voxel(x,y,z) * voxel(x,y,z)
+
+    """
 
     from CPAC.series_mod import partial_corr  
     import numpy as np
@@ -29,6 +57,20 @@ def compute_pcorr(in_file):
     return pcorr_mat    
     
 def compute_MI(in_file):
+    """
+    Computes Mutual Information from a 1D datafile and returns a np.array.
+    
+    Parameters
+    ----------
+
+    in_file : 1D file
+
+    Returns
+    -------
+
+    data_array =  voxel(x,y,z) * voxel(x,y,z)
+
+    """
 
     from CPAC.series_mod import transform
     from CPAC.series_mod import mutual_information
@@ -56,7 +98,22 @@ def compute_MI(in_file):
 
     return MI_mat
     
-def compute_TE(in_file, mask_file = 0, voxelwise = 0):
+def compute_TE(in_file, lag = 1):
+    """
+    Computes Transfer Entropy from a 1D datafile and returns a np.array.
+    
+    Parameters
+    ----------
+
+    in_file : 1D file
+    lag  :  lag to calculate the second term of the Transfer Entropy
+
+    Returns
+    -------
+
+    data_array =  voxel(x,y,z) * voxel(x,y,z)
+
+    """
 
     from CPAC.series_mod import transform
     from CPAC.series_mod import transfer_entropy
@@ -78,7 +135,7 @@ def compute_TE(in_file, mask_file = 0, voxelwise = 0):
     
     for i_ in range(n_var):
         for j_ in range(n_var):
-            TE_mat[i_,j_] = transfer_entropy(data[i_,:],data[j_,:],1)
+            TE_mat[i_,j_] = transfer_entropy(data[i_,:],data[j_,:],lag)
     
     
     np.save(in_file[:-7]+'_TE.npy', TE_mat)
@@ -87,18 +144,18 @@ def compute_TE(in_file, mask_file = 0, voxelwise = 0):
 
     
 # NOT USED    
-def compute_ApEn(in_file, m_param, r_param):
-
-    from CPAC.series_mod import gen_voxel_timeseries
-    from CPAC.series_mod import ap_entropy 
-    import numpy as np
-    
-    data = gen_voxel_timeseries(in_file)
-    ApEn_vector = ap_entropy(data,m_param,r_param)
-    
-    np.savetxt(in_file[:-7]+'_ApEn.txt', ApEn_vector)
-
-    return ApEn_vector
+#def compute_ApEn(in_file, m_param, r_param):
+#
+#    from CPAC.series_mod import gen_voxel_timeseries
+#    from CPAC.series_mod import ap_entropy 
+#    import numpy as np
+#    
+#    data = gen_voxel_timeseries(in_file)
+#    ApEn_vector = ap_entropy(data,m_param,r_param)
+#    
+#    np.savetxt(in_file[:-7]+'_ApEn.txt', ApEn_vector)
+#
+#    return ApEn_vector
 
 
 
@@ -146,7 +203,6 @@ def gen_voxel_timeseries(in_file):
     img_data = nb.load(in_file).get_data()
     #TR = datafile.header['pixdim'][4]
 
-    #print img_data.shape
     (n_x, n_y, n_z, n_t) = img_data.shape
     voxel_data_array = np.reshape(img_data, (n_x*n_y*n_z, n_t), order='F')
     
@@ -370,8 +426,10 @@ def transform(x_old, Nbins):
     ymax = x_old.max()
     ymin = x_old.min()
     
-    #x_new = ((xmax - xmin)/(ymax - ymin) )* x_old - ( (xmax - xmin) / (ymax - ymin) ) * ymin + xmin;
+    # in one sentence:
+    # x_new = ((xmax - xmin)/(ymax - ymin) )* x_old - ( (xmax - xmin) / (ymax - ymin) ) * ymin + xmin;
     
+    # more legible:
     x = (xmax-xmin)/(ymax-ymin)
     x_new = x * x_old
     x_new = x_new - (x*ymin+xmin)
@@ -439,7 +497,7 @@ def entropy_cc(X,Y): #ENTROPY CORRELATION COEFFICIENT
     return ECC   
     
 
-def transfer_entropy(X, Y, lag):
+def transfer_entropy(X, Y, lag = 1):
     #========================================================
     # TRANSFER_ENTROPY This funcion computes the transfer entropy for two given 
     # signals
@@ -575,7 +633,7 @@ def phase_sync(X):
     import scipy.signal.signaltools as sigtool
 
     htx = sigtool.hilbert(X)
-    # This converts (real, imag) to an angle
+    # Converts (real, imag) to an angle
     px = np.angle(htx)
         
     return np.sqrt(np.mean(np.cos(px))**2) # + np.mean(np.sin(px))**2) #PS_value      

@@ -1,10 +1,22 @@
-#in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
-
 # THIS SCRIPT USES Nvar * Ntimepoints LIKE MATRIX STRUCTURES
 
-# Point process analysis for a signal. Values equal to 1 when the original value 
-# is higher than the threshold (1*SD)
+
 def point_process(signal):
+    """
+    Point process analysis for a signal. Values equal to 1 when the original value 
+    is higher than the threshold (1*SD)  
+    
+    Parameters
+    ----------
+
+    signal :  timeseries
+    
+    Returns
+    -------
+
+    pp_signal  :  Point Processed signal. No repetitions if the signal goes behind
+    the threshold (activates), as explained in http://journal.frontiersin.org/article/10.3389/fphys.2012.00015/abstract
+    """
 
     import numpy as np
 
@@ -25,9 +37,24 @@ def point_process(signal):
     return pp_signal
     
     
-# Conditional Rate Map. Given an fMRI, extract timeseries, calculate Point Process
-# and then the Rate Map for each voxel given a seed   
+
 def cond_rm(in_file, seed_location):
+    """
+    Conditional Rate Map. Given an fMRI, extract timeseries, calculate Point Process
+    and then the Rate Map for each voxel given a seed   
+    
+    Parameters
+    ----------
+
+    in_file : 4D Nifti file
+    seed_location  :  voxel to analyze as seed
+
+    Returns
+    -------
+
+    cond_rm_img  :  3D Volume
+    """
+
 
     import numpy as np
     import os
@@ -76,24 +103,28 @@ def cond_rm(in_file, seed_location):
 
 
     # Reconstruct the 3D volume
-    cond_rm_file = os.path.join(os.getcwd(), 'cond_rm.nii.gz')
-    img_new.to_filename(cond_rm_file)
+    cond_rm_img = os.path.join(os.getcwd(), 'cond_rm.nii.gz')
+    img_new.to_filename(cond_rm_img)
 
-    return cond_rm_file
-  
-  
- 
-# in_file = ('/home/asier/git/C-PAC_complexitytools/CPAC/series_mod/data.nii')
-# mask_file = ('/home/asier/git/C-PAC_complexitytools/CPAC/series_mod/data_atlas.nii') 
-# cluster_size = 27 
- 
-# compute_reho(in_file, mask_file, cluster_size) 
- 
-# in_file = ('/home/asier/git/C-PAC_complexitytools/CPAC/series_mod/ReHo.nii.gz')
+    return cond_rm_img
  
  
-# Detects clusters after Point Processing a Brain 
-def cluster_detection(in_file):  
+# 
+def cluster_detection(in_file): 
+    """
+    Detects clusters after Point Processing a Brain 
+    as described in http://journal.frontiersin.org/article/10.3389/fphys.2012.00015/abstract
+    
+    Parameters
+    ----------
+
+    in_file : 4D Nifti file
+
+    Returns
+    -------
+
+    cluster_graph_img  :  4D Nifti file with an id for each cluster in each timestep
+    """
 
     import numpy as np
     import os
@@ -175,15 +206,15 @@ def cluster_detection(in_file):
                        
         cluster_graph_data_total[:,:,:,t_] = cluster_graph_data 
         
-    return cluster_graph_data_total    
-
-
-#img_new = nb.Nifti1Image(cluster_graph_data_total, header=img.get_header(), affine=img.get_affine())
-## Reconstruct the 4D volume
-#cond_rm_file = os.path.join(os.getcwd(), 'cluster_1V.nii.gz')
-#img_new.to_filename(cond_rm_file)
-
-
+        img_new = nb.Nifti1Image(cluster_graph_data_total, header=img.get_header(), affine=img.get_affine())
+        # Reconstruct the 4D volume
+        cluster_graph_img = os.path.join(os.getcwd(), 'cluster_1N.nii.gz')
+        img_new.to_filename(cluster_graph_img)
+                
+    return cluster_graph_img    
+    
+# Detects clusters after Point Processing a Brain 
+# having 2 neighbouring distance in cross-sense
 def cluster_detection_mod2(in_file):  
 
     import numpy as np
@@ -287,146 +318,160 @@ def cluster_detection_mod2(in_file):
                        
         cluster_graph_data_total[:,:,:,t_] = cluster_graph_data 
         
-    return cluster_graph_data_total
-    
-#img_new = nb.Nifti1Image(cluster_graph_data_total, header=img.get_header(), affine=img.get_affine())
-## Reconstruct the 4D volume
-#cond_rm_file = os.path.join(os.getcwd(), 'cluster_2V.nii.gz')
-#img_new.to_filename(cond_rm_file)    
-    
-    
-def cluster_detection_mod3(in_file):  
-
-    import numpy as np
-    import os
-    import nibabel as nb
-    from CPAC.criticallity import point_process  
-
-    # Treat fMRI image
-    img = nb.load(in_file)
-    data = img.get_data()
-    
-    (n_x, n_y, n_z, n_t) = data.shape
-    
-    # Get the PP data
-    pp_data = np.zeros((n_x, n_y, n_z, n_t))
-    for i_ in range(n_x):
-        for j_ in range(n_y):
-            for k_ in range(n_z):
-                voxel_data = data[i_,j_,k_,:] 
-                pp_data[i_,j_,k_,:] = point_process(voxel_data)
-    
-    cluster_graph_data_total = np.zeros((n_x, n_y, n_z, n_t))            
-    for t_ in range(n_t):
-        time_slice = pp_data[:,:,:,t_]
-        cluster_graph_data = np.zeros((n_x, n_y, n_z))  
-        cluster_number = 1
+        img_new = nb.Nifti1Image(cluster_graph_data_total, header=img.get_header(), affine=img.get_affine())
+        # Reconstruct the 4D volume
+        cluster_graph_img = os.path.join(os.getcwd(), 'cluster_2N.nii.gz')
+        img_new.to_filename(cluster_graph_img)   
         
-        for i_ in range(n_x):
-            for j_ in range(n_y):
-                for k_ in range(n_z):
-                    
-                    if time_slice[i_,j_,k_] == 1: # is active, check if it has active neighboours
-                        if time_slice[i_-1,j_,k_] or time_slice[i_+1,j_,k_] \
-                        or time_slice[i_,j_-1,k_] or time_slice[i_,j_+1,k_] \
-                        or time_slice[i_,j_,k_-1] or time_slice[i_,j_,k_+1] \
-                        or time_slice[i_-2,j_,k_] or time_slice[i_+2,j_,k_] \
-                        or time_slice[i_,j_-2,k_] or time_slice[i_,j_+2,k_] \
-                        or time_slice[i_,j_,k_-2] or time_slice[i_,j_,k_+2] \
-                        or time_slice[i_-3,j_,k_] or time_slice[i_+3,j_,k_] \
-                        or time_slice[i_,j_-3,k_] or time_slice[i_,j_+3,k_] \
-                        or time_slice[i_,j_,k_-3] or time_slice[i_,j_,k_+3]:
-                            
-                            if cluster_graph_data[i_,j_,k_] == 0: # if is not in any previous cluster
-                                this_cluster = (cluster_graph_data[i_-1,j_,k_] or cluster_graph_data[i_+1,j_,k_] \
-                                or cluster_graph_data[i_,j_-1,k_] or cluster_graph_data[i_,j_+1,k_] \
-                                or cluster_graph_data[i_,j_,k_-1] or cluster_graph_data[i_,j_,k_+1] \
-                                or cluster_graph_data[i_-2,j_,k_] or cluster_graph_data[i_+2,j_,k_] \
-                                or cluster_graph_data[i_,j_-2,k_] or cluster_graph_data[i_,j_+2,k_] \
-                                or cluster_graph_data[i_,j_,k_-2] or cluster_graph_data[i_,j_,k_+2] \
-                                or cluster_graph_data[i_-3,j_,k_] or cluster_graph_data[i_+3,j_,k_] \
-                                or cluster_graph_data[i_,j_-3,k_] or cluster_graph_data[i_,j_+3,k_] \
-                                or cluster_graph_data[i_,j_,k_-3] or cluster_graph_data[i_,j_,k_+3])
-                                
-                                if this_cluster == 0: #no neighbours in any previous cluster neither
-                                    this_cluster = cluster_number
-                                    cluster_graph_data[i_,j_,k_] = this_cluster
-                                    cluster_number = cluster_number + 1
-                                else: 
-                                    #check cluster union
-                                    merge_clusters = np.unique([cluster_graph_data[i_-1,j_,k_], cluster_graph_data[i_+1,j_,k_] \
-                                , cluster_graph_data[i_,j_-1,k_], cluster_graph_data[i_,j_+1,k_] \
-                                , cluster_graph_data[i_,j_,k_-1], cluster_graph_data[i_,j_,k_+1] \
-                                , cluster_graph_data[i_-2,j_,k_] , cluster_graph_data[i_+2,j_,k_] \
-                                , cluster_graph_data[i_,j_-2,k_] , cluster_graph_data[i_,j_+2,k_] \
-                                , cluster_graph_data[i_,j_,k_-2] , cluster_graph_data[i_,j_,k_+2] \
-                                , cluster_graph_data[i_-3,j_,k_] , cluster_graph_data[i_+3,j_,k_] \
-                                , cluster_graph_data[i_,j_-3,k_] , cluster_graph_data[i_,j_+3,k_] \
-                                , cluster_graph_data[i_,j_,k_-3] , cluster_graph_data[i_,j_,k_+3]])
-                                    merge_clusters = merge_clusters[1:] #quit first value = 0
-                                    
-                                    this_cluster = merge_clusters[0]
-                                    cluster_graph_data[i_,j_,k_] = this_cluster
-                                    for cluster_to_merge in merge_clusters[1:]:
-                                        cluster_graph_data[cluster_graph_data == cluster_to_merge] = this_cluster
-                                    
-                                    
-                            else:
-                                this_cluster = cluster_graph_data[i_,j_,k_]
-                                
-                            #find neighbours and give cluster_number
-                            if time_slice[i_-1,j_,k_] == 1:
-                                cluster_graph_data[i_-1,j_,k_] = this_cluster
-                            elif time_slice[i_+1,j_,k_] == 1:
-                                cluster_graph_data[i_+1,j_,k_] = this_cluster
-                            elif time_slice[i_,j_-1,k_] == 1:
-                                cluster_graph_data[i_,j_-1,k_] = this_cluster
-                            elif time_slice[i_,j_+1,k_] == 1:
-                                cluster_graph_data[i_,j_+1,k_] = this_cluster
-                            elif time_slice[i_,j_,k_-1] == 1:
-                                cluster_graph_data[i_,j_,k_-1] = this_cluster
-                            elif time_slice[i_,j_,k_+1] == 1:
-                                cluster_graph_data[i_,j_,k_+1] = this_cluster
-                            elif time_slice[i_-2,j_,k_] == 1:
-                                cluster_graph_data[i_-1,j_,k_] = this_cluster
-                            elif time_slice[i_+2,j_,k_] == 1:
-                                cluster_graph_data[i_+1,j_,k_] = this_cluster
-                            elif time_slice[i_,j_-2,k_] == 1:
-                                cluster_graph_data[i_,j_-1,k_] = this_cluster
-                            elif time_slice[i_,j_+2,k_] == 1:
-                                cluster_graph_data[i_,j_+1,k_] = this_cluster
-                            elif time_slice[i_,j_,k_-2] == 1:
-                                cluster_graph_data[i_,j_,k_-1] = this_cluster
-                            elif time_slice[i_,j_,k_+2] == 1:
-                                cluster_graph_data[i_,j_,k_+1] = this_cluster     
-                            elif time_slice[i_-3,j_,k_] == 1:
-                                cluster_graph_data[i_-1,j_,k_] = this_cluster
-                            elif time_slice[i_+3,j_,k_] == 1:
-                                cluster_graph_data[i_+1,j_,k_] = this_cluster
-                            elif time_slice[i_,j_-3,k_] == 1:
-                                cluster_graph_data[i_,j_-1,k_] = this_cluster
-                            elif time_slice[i_,j_+3,k_] == 1:
-                                cluster_graph_data[i_,j_+1,k_] = this_cluster
-                            elif time_slice[i_,j_,k_-3] == 1:
-                                cluster_graph_data[i_,j_,k_-1] = this_cluster
-                            elif time_slice[i_,j_,k_+3] == 1:
-                                cluster_graph_data[i_,j_,k_+1] = this_cluster 
-                                #find neighbours and give this_cluster
-                                
-                    # if not == 1¡, keep the search 
-                        # if not neighbours, keep the search
-                       
-        cluster_graph_data_total[:,:,:,t_] = cluster_graph_data 
-        
-    return cluster_graph_data_total  
+    return cluster_graph_img
     
     
-#img_new = nb.Nifti1Image(cluster_graph_data_total, header=img.get_header(), affine=img.get_affine())
-## Reconstruct the 4D volume
-#cond_rm_file = os.path.join(os.getcwd(), 'cgd_4D_3V.nii.gz')
-#img_new.to_filename(cond_rm_file)  
+#def cluster_detection_mod3(in_file):  
+#
+#    import numpy as np
+#    import os
+#    import nibabel as nb
+#    from CPAC.criticallity import point_process  
+#
+#    # Treat fMRI image
+#    img = nb.load(in_file)
+#    data = img.get_data()
+#    
+#    (n_x, n_y, n_z, n_t) = data.shape
+#    
+#    # Get the PP data
+#    pp_data = np.zeros((n_x, n_y, n_z, n_t))
+#    for i_ in range(n_x):
+#        for j_ in range(n_y):
+#            for k_ in range(n_z):
+#                voxel_data = data[i_,j_,k_,:] 
+#                pp_data[i_,j_,k_,:] = point_process(voxel_data)
+#    
+#    cluster_graph_data_total = np.zeros((n_x, n_y, n_z, n_t))            
+#    for t_ in range(n_t):
+#        time_slice = pp_data[:,:,:,t_]
+#        cluster_graph_data = np.zeros((n_x, n_y, n_z))  
+#        cluster_number = 1
+#        
+#        for i_ in range(n_x):
+#            for j_ in range(n_y):
+#                for k_ in range(n_z):
+#                    
+#                    if time_slice[i_,j_,k_] == 1: # is active, check if it has active neighboours
+#                        if time_slice[i_-1,j_,k_] or time_slice[i_+1,j_,k_] \
+#                        or time_slice[i_,j_-1,k_] or time_slice[i_,j_+1,k_] \
+#                        or time_slice[i_,j_,k_-1] or time_slice[i_,j_,k_+1] \
+#                        or time_slice[i_-2,j_,k_] or time_slice[i_+2,j_,k_] \
+#                        or time_slice[i_,j_-2,k_] or time_slice[i_,j_+2,k_] \
+#                        or time_slice[i_,j_,k_-2] or time_slice[i_,j_,k_+2] \
+#                        or time_slice[i_-3,j_,k_] or time_slice[i_+3,j_,k_] \
+#                        or time_slice[i_,j_-3,k_] or time_slice[i_,j_+3,k_] \
+#                        or time_slice[i_,j_,k_-3] or time_slice[i_,j_,k_+3]:
+#                            
+#                            if cluster_graph_data[i_,j_,k_] == 0: # if is not in any previous cluster
+#                                this_cluster = (cluster_graph_data[i_-1,j_,k_] or cluster_graph_data[i_+1,j_,k_] \
+#                                or cluster_graph_data[i_,j_-1,k_] or cluster_graph_data[i_,j_+1,k_] \
+#                                or cluster_graph_data[i_,j_,k_-1] or cluster_graph_data[i_,j_,k_+1] \
+#                                or cluster_graph_data[i_-2,j_,k_] or cluster_graph_data[i_+2,j_,k_] \
+#                                or cluster_graph_data[i_,j_-2,k_] or cluster_graph_data[i_,j_+2,k_] \
+#                                or cluster_graph_data[i_,j_,k_-2] or cluster_graph_data[i_,j_,k_+2] \
+#                                or cluster_graph_data[i_-3,j_,k_] or cluster_graph_data[i_+3,j_,k_] \
+#                                or cluster_graph_data[i_,j_-3,k_] or cluster_graph_data[i_,j_+3,k_] \
+#                                or cluster_graph_data[i_,j_,k_-3] or cluster_graph_data[i_,j_,k_+3])
+#                                
+#                                if this_cluster == 0: #no neighbours in any previous cluster neither
+#                                    this_cluster = cluster_number
+#                                    cluster_graph_data[i_,j_,k_] = this_cluster
+#                                    cluster_number = cluster_number + 1
+#                                else: 
+#                                    #check cluster union
+#                                    merge_clusters = np.unique([cluster_graph_data[i_-1,j_,k_], cluster_graph_data[i_+1,j_,k_] \
+#                                , cluster_graph_data[i_,j_-1,k_], cluster_graph_data[i_,j_+1,k_] \
+#                                , cluster_graph_data[i_,j_,k_-1], cluster_graph_data[i_,j_,k_+1] \
+#                                , cluster_graph_data[i_-2,j_,k_] , cluster_graph_data[i_+2,j_,k_] \
+#                                , cluster_graph_data[i_,j_-2,k_] , cluster_graph_data[i_,j_+2,k_] \
+#                                , cluster_graph_data[i_,j_,k_-2] , cluster_graph_data[i_,j_,k_+2] \
+#                                , cluster_graph_data[i_-3,j_,k_] , cluster_graph_data[i_+3,j_,k_] \
+#                                , cluster_graph_data[i_,j_-3,k_] , cluster_graph_data[i_,j_+3,k_] \
+#                                , cluster_graph_data[i_,j_,k_-3] , cluster_graph_data[i_,j_,k_+3]])
+#                                    merge_clusters = merge_clusters[1:] #quit first value = 0
+#                                    
+#                                    this_cluster = merge_clusters[0]
+#                                    cluster_graph_data[i_,j_,k_] = this_cluster
+#                                    for cluster_to_merge in merge_clusters[1:]:
+#                                        cluster_graph_data[cluster_graph_data == cluster_to_merge] = this_cluster
+#                                    
+#                                    
+#                            else:
+#                                this_cluster = cluster_graph_data[i_,j_,k_]
+#                                
+#                            #find neighbours and give cluster_number
+#                            if time_slice[i_-1,j_,k_] == 1:
+#                                cluster_graph_data[i_-1,j_,k_] = this_cluster
+#                            elif time_slice[i_+1,j_,k_] == 1:
+#                                cluster_graph_data[i_+1,j_,k_] = this_cluster
+#                            elif time_slice[i_,j_-1,k_] == 1:
+#                                cluster_graph_data[i_,j_-1,k_] = this_cluster
+#                            elif time_slice[i_,j_+1,k_] == 1:
+#                                cluster_graph_data[i_,j_+1,k_] = this_cluster
+#                            elif time_slice[i_,j_,k_-1] == 1:
+#                                cluster_graph_data[i_,j_,k_-1] = this_cluster
+#                            elif time_slice[i_,j_,k_+1] == 1:
+#                                cluster_graph_data[i_,j_,k_+1] = this_cluster
+#                            elif time_slice[i_-2,j_,k_] == 1:
+#                                cluster_graph_data[i_-1,j_,k_] = this_cluster
+#                            elif time_slice[i_+2,j_,k_] == 1:
+#                                cluster_graph_data[i_+1,j_,k_] = this_cluster
+#                            elif time_slice[i_,j_-2,k_] == 1:
+#                                cluster_graph_data[i_,j_-1,k_] = this_cluster
+#                            elif time_slice[i_,j_+2,k_] == 1:
+#                                cluster_graph_data[i_,j_+1,k_] = this_cluster
+#                            elif time_slice[i_,j_,k_-2] == 1:
+#                                cluster_graph_data[i_,j_,k_-1] = this_cluster
+#                            elif time_slice[i_,j_,k_+2] == 1:
+#                                cluster_graph_data[i_,j_,k_+1] = this_cluster     
+#                            elif time_slice[i_-3,j_,k_] == 1:
+#                                cluster_graph_data[i_-1,j_,k_] = this_cluster
+#                            elif time_slice[i_+3,j_,k_] == 1:
+#                                cluster_graph_data[i_+1,j_,k_] = this_cluster
+#                            elif time_slice[i_,j_-3,k_] == 1:
+#                                cluster_graph_data[i_,j_-1,k_] = this_cluster
+#                            elif time_slice[i_,j_+3,k_] == 1:
+#                                cluster_graph_data[i_,j_+1,k_] = this_cluster
+#                            elif time_slice[i_,j_,k_-3] == 1:
+#                                cluster_graph_data[i_,j_,k_-1] = this_cluster
+#                            elif time_slice[i_,j_,k_+3] == 1:
+#                                cluster_graph_data[i_,j_,k_+1] = this_cluster 
+#                                #find neighbours and give this_cluster
+#                                
+#                    # if not == 1¡, keep the search 
+#                        # if not neighbours, keep the search
+#                       
+#        cluster_graph_data_total[:,:,:,t_] = cluster_graph_data 
+#       
+#        img_new = nb.Nifti1Image(cluster_graph_data_total, header=img.get_header(), affine=img.get_affine())
+#        # Reconstruct the 4D volume
+#        cluster_graph = os.path.join(os.getcwd(), 'cluster_3N.nii.gz')
+#        img_new.to_filename(cluster_graph)
+#    
+#    return cluster_graph_data_total  
     
+  
 def avalanche_detec(cluster_file):
+    """
+    Detects avalanches if a cluster file is given to it
+    as described in http://journal.frontiersin.org/article/10.3389/fphys.2012.00015/abstract  
+    
+    Parameters
+    ----------
+
+    cluster_file : Previously calculated cluster_graph file
+
+    Returns
+    -------
+
+    avalanche_img  :  Nifti file: 4D with an id for each avalanche
+    """
     
     import numpy as np
     import nibabel as nb
@@ -450,16 +495,13 @@ def avalanche_detec(cluster_file):
             avalanche_id_now = avalanche_id_total[:,:,:,t_]   
             avalanche_id_fut = avalanche_id_total[:,:,:,t_+1]   
             
-            
             for cluster in np.unique(cluster_data[:,:,:,t_])[1:]: #iterate over clusters
                 # NEW AVALANCHE CASE
                 if np.count_nonzero(time_slice_fut[(time_slice==cluster)]) >= 1 :                
-                    avalanche_id_now[(time_slice==cluster)] = avalanche_id_num # assign the cluster a aval_id
-                    #time_slice[(time_slice==cluster)] = 0 #delete the used cluster
+                    avalanche_id_now[(time_slice==cluster)] = avalanche_id_num # assign cluster a aval_id
                     
-                    for value in np.unique(time_slice_fut[(time_slice==cluster)])[1:]: #assing and delete the used clusters of the t+1
+                    for value in np.unique(time_slice_fut[(time_slice==cluster)])[1:]: #assing used clusters of t+1
                         avalanche_id_fut[(time_slice_fut==value)] = avalanche_id_num
-                        #time_slice_fut[time_slice_fut==value] = 0 #delete used future clusters
                     
                     avalanche_id_num = avalanche_id_num +1 # Ivan: Would be interesting to define the length of sustaining avalanches
                     
@@ -468,8 +510,6 @@ def avalanche_detec(cluster_file):
                     
                     
         elif t_ < (n_t-1):  #if not first timestep, check previous
-            print t_
-            #time_slice_past = cluster_data[:,:,:,t_-1]
             time_slice = cluster_data[:,:,:,t_]          
             time_slice_fut = cluster_data[:,:,:,t_+1]
             
@@ -480,29 +520,22 @@ def avalanche_detec(cluster_file):
                 # PREVIOUS AVALANCHE CASE
                 if np.count_nonzero(avalanche_id_now[(time_slice==cluster)]) != 0: 
                     if np.count_nonzero(time_slice_fut[(time_slice==cluster)]) >= 1 :
-                                          
-#                        avalanche_id_now[(time_slice==cluster)] = avalanche_id_num # assign the cluster a aval_id
-#                        time_slice[(time_slice==cluster)] = 0 #delete the used cluster
                         
                         this_avalanche = avalanche_id_now[(time_slice==cluster)][0]
                         
-                        for value in np.unique(time_slice_fut[(time_slice==cluster)])[1:]: #assing and delete the used clusters of the t+1
+                        for value in np.unique(time_slice_fut[(time_slice==cluster)])[1:]: #assing used clusters of the t+1
                             avalanche_id_fut[(time_slice_fut==value)] = this_avalanche
-                            #time_slice_fut[time_slice_fut==value] = 0
                         
                         avalanche_id_total[:,:,:,t_+1] = avalanche_id_fut 
                 
-                # Maybe this is wrong, since if it has a positive intersect with the past, already is part of the avalanches. TAKE A LOOK ON THIS!!
+                # Maybe this is wrong, since if it has a positive intersect with the past, already is part of the avalanches.
                 # NEW AVALANCHE CASE ## HERE MAYBE PROBLEMS
                 elif np.count_nonzero(avalanche_id_now[(time_slice==cluster)]) == 0: #and np.count_nonzero(time_slice_past[(time_slice==cluster)]) == 0:
                     if np.count_nonzero(time_slice_fut[(time_slice==cluster)]) >= 1 :
-                                          
-#                        avalanche_id_now[(time_slice==cluster)] = avalanche_id_num # assign the cluster a aval_id
-#                        time_slice[(time_slice==cluster)] = 0 #delete the used cluster
                         
-                        avalanche_id_now[(time_slice==cluster)] = avalanche_id_num
+                        avalanche_id_now[(time_slice==cluster)] = avalanche_id_num # assign cluster a aval_id
                         
-                        for value in np.unique(time_slice_fut[(time_slice==cluster)])[1:]: #assing and delete the used clusters of the t+1
+                        for value in np.unique(time_slice_fut[(time_slice==cluster)])[1:]: #assing the used clusters of the t+1
                             avalanche_id_fut[(time_slice_fut==value)] = avalanche_id_num
                             
                         avalanche_id_num = avalanche_id_num + 1
@@ -513,10 +546,10 @@ def avalanche_detec(cluster_file):
     
     img_new = nb.Nifti1Image(avalanche_id_total, header=img.get_header(), affine=img.get_affine())
     # Reconstruct the 4D volume
-    cond_rm_file = os.path.join(os.getcwd(), 'avalanche.nii.gz')
-    img_new.to_filename(cond_rm_file)  
+    avalanche_img = os.path.join(os.getcwd(), 'avalanche.nii.gz')
+    img_new.to_filename(avalanche_img)  
     
-    return avalanche_id_total    
+    return avalanche_img    
     
     
     
