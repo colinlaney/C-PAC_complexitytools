@@ -214,8 +214,8 @@ class Partition(object):
             # for key in keys:
             #     print wNtoM[key]
 
-            items = wNtoM.items()
-            random.shuffle(items)
+            # items = wNtoM.items()
+            # random.shuffle(items)
 
             for key, value in wNtoM.items():
                 toM  = key
@@ -227,7 +227,8 @@ class Partition(object):
 
                 if toM != fromM:
                     node_i_exit   = self.graph.node[pick][EXIT]
-                    node_i_degree = self.graph.degree(pick)
+                    #node_i_degree = self.graph.degree(pick)
+                    node_i_degree = self.graph.degree(pick, weight="weight")
 
                     delta_exit = self.plogp(self.exitDegree - 2.*wtoM + 2.*wfromM) - self.exit
 
@@ -412,7 +413,7 @@ def infomap(graph):
 
 def main():
     #test prep
-    graph = btg.build_graph()
+    #graph = btg.build_graph()
     import networkx as nx
     #graph = nx.karate_club_graph()
     #graph = nx.read_gpickle("/Users/florian/Desktop/testgraph/testgraph")
@@ -420,7 +421,7 @@ def main():
     #fh=open("/Users/florian/Desktop/com-amazon.ungraph.txt")
     #graph = nx.read_edgelist(fh, nodetype=int)
 
-    #graph = girvan(4)
+    graph = girvan(4)
 
     # call to main algorithm method
     mapping = infomap(graph)
