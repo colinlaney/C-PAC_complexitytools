@@ -180,6 +180,8 @@ class Partition(object):
             # elif index == 1:
             #     pick = 1
             #pick = curr_node
+
+            # TODO in second phase wrong link count due to self loops
             Nlinks = len(self.graph.neighbors(pick))
             wNtoM  = self.neighbourhood_link_strength(pick)
             fromM  = self.modules[pick]
@@ -407,7 +409,7 @@ def infomap(graph):
 
 def main():
     #test prep
-    #graph = btg.build_graph()
+    graph = btg.build_graph()
     import networkx as nx
     #graph = nx.karate_club_graph()
     #graph = nx.read_gpickle("/Users/florian/Desktop/testgraph/testgraph")
@@ -415,7 +417,7 @@ def main():
     #fh=open("/Users/florian/Desktop/com-amazon.ungraph.txt")
     #graph = nx.read_edgelist(fh, nodetype=int)
 
-    graph = girvan(4)
+    #graph = girvan(4)
 
     # call to main algorithm method
     mapping = infomap(graph)
@@ -490,7 +492,6 @@ def drawNetwork(G):
     plt.axis('off')
     # plt.savefig("karate.png")
     plt.show()
-    print "mash allah"
 
 if __name__ == '__main__':
     main()
