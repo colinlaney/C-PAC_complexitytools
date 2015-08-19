@@ -10,7 +10,7 @@ def girvan_graphs(zout) :
     Community Structure in  social and biological networks.
     Girvan newman, 2002. PNAS June, vol 99 n 12
 
-    community is node modulo 4
+    Community is node modulo 4
     """
 
     pout = float(zout)/96.

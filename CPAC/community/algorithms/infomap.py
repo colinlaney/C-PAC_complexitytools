@@ -60,10 +60,7 @@ class Partition(object):
 
 
 
-    def init(self, at_beginning=False):
-
-        #TODO  what has to change when this gets called in later iterations?
-        #pruge self loops
+    def init(self):
         loop_edges = self.graph.selfloop_edges()
         #self.graph.remove_edges_from(loop_edges)
 
@@ -78,13 +75,9 @@ class Partition(object):
             self.modules[node] = count
             count += 1
 
-        """node frequency as computed by page rank currenlty not used"""
-        page_ranks = nx.pagerank(self.graph)
-        nx.set_node_attributes(self.graph, 'NODE_FREQUENCY', page_ranks)
-        """ In the beginning exit := degree of the node
+        """ Exit is a proxy for the degree of the node, includding weights on self loops
             Use degrees as proxy for node frequency which is obtained from markov stationary distribution (random surfer calculation via page rank)
 
-            Later: Exit := totoal weight of links to other modules
         """
         degrees={i:self.graph.degree(i, weight="weight") for i in self.graph}
         nx.set_node_attributes(self.graph, 'EXIT', degrees)
@@ -102,9 +95,9 @@ class Partition(object):
             self.mod_exit[index]    = node_i_exit
             self.mod_degree[index]  = node_i_degree
 
-        if at_beginning == True:
-            self.exit = self.plogp(self.exitDegree)
-            self.code_length = self.exit - 2.0 * self.exit_log_exit + self.degree_log_degree - self.nodeDegree_log_nodeDegree
+
+        self.exit = self.plogp(self.exitDegree)
+        self.code_length = self.exit - 2.0 * self.exit_log_exit + self.degree_log_degree - self.nodeDegree_log_nodeDegree
 
     def plogp(self, degree):
         """Entropy calculation"""
@@ -160,74 +153,28 @@ class Partition(object):
 
     def determine_best_new_module(self, iteration, stat):
         randomSequence = self.get_random_permutation_of_nodes()
-
-
         for index, curr_node in enumerate(self.graph):
-        #for index, curr_node in enumerate(randomSequence):
-            #pick   = randomSequence[index]
             pick = curr_node
-
-
-            # if index == 0:
-            #     pick = 31
-            # elif index == 1:
-            #     pick = 11
-            # else:
-            #     pick = randomSequence[index]
-
-            # if index == 0:
-            #     pick = 5
-            # elif index == 1:
-            #     pick = 1
-            #pick = curr_node
-
-            # TODO in second phase wrong link count due to self loops
-
-            #Nlinks = len(self.graph.neighbors(pick))
+            # filter out self links
             Nlinks = len(list(filter(lambda x: x != pick, self.graph.neighbors(pick))))
-
             wNtoM  = self.neighbourhood_link_strength(pick)
             fromM  = self.modules[pick]
-            #that is wrong, it would sum up all the edges from the neighbour
+            #that would be wrong, it would sum up all the edges from the neighbour
             #wfromM = sum([self.graph.node[neighbour][EXIT] for neighbour in self.graph.neighbors(pick)])
-            #instead what we want is to look up the weight to own module in the community_links dict
+            #instead what we want is to look up the weight to own module in the  dict containing the neighbours links
             wfromM =  wNtoM.get(fromM, 0.0)
-
             bestM       = fromM
             best_weight = 0.0
             best_delta  = 0.0
-
             NmodLinks = len((wNtoM.keys()))
-
-
-            # TODO randomize neighbor links + sort the nodes to exit mapping in second step?
-            # zaehler = 0
-            # for mod, weight in wNtoM.items():
-            #     randPos = np.random.permutation(len(wNtoM)
-            #      temp_mod = mod
-            #      temp_weight = weight
-            #      wNtoM[zaehler].
-
-            import random
-            # keys = wNtoM.keys()
-            # random.shuffle(keys)
-            # for key in keys:
-            #     print wNtoM[key]
-
-            # items = wNtoM.items()
-            # random.shuffle(items)
 
             for key, value in wNtoM.items():
                 toM  = key
                 wtoM = value
-
                 deltaL = 0
-
                 correction = 0
-
                 if toM != fromM:
                     node_i_exit   = self.graph.node[pick][EXIT]
-                    #node_i_degree = self.graph.degree(pick)
                     node_i_degree = self.graph.degree(pick, weight="weight")
 
                     delta_exit = self.plogp(self.exitDegree - 2.*wtoM + 2.*wfromM) - self.exit
@@ -290,8 +237,6 @@ class Partition(object):
                 stat['moved'] = False
 
 
-
-
     def second_pass(self, current_partition):
         # aggregated_graph = nx.Graph()
         #
@@ -317,8 +262,8 @@ class Partition(object):
             ret.add_edge(com1, com2, weight = w_prec + weight)
         return ret
 
-    def set_up(self, org_mods):
 
+    def set_up(self, org_mods):
         self.modules = dict([])
 
         count = 0
@@ -328,12 +273,9 @@ class Partition(object):
 
         indicies = list(set(org_mods.values()))
         exit_degrees = {_:self.mod_exit[index] for _, index in enumerate(indicies)}
-
         nx.set_node_attributes(self.graph, 'EXIT', exit_degrees)
-
         self.mod_exit = dict([])
         self.mod_degree = dict([])
-
         self.exit_log_exit = 0.0
         self.degree_log_degree = 0.0
         self.exitDegree = 0.0
@@ -352,6 +294,7 @@ class Partition(object):
             self.exit = self.plogp(self.exitDegree)
             self.code_length = self.exit - 2.0 * self.exit_log_exit + self.degree_log_degree - self.nodeDegree_log_nodeDegree
 
+
     def generate_module_mapping(self, module_hierarchy, level):
         module_mapping = module_hierarchy[0].copy()
         for index in range(1, level + 1):
@@ -362,17 +305,9 @@ class Partition(object):
 
 
 def iteration_loop(graph):
-    #import pdb; pdb.set_trace()
-
-    # partition.move()
-
     iteration =0
-
     partition = Partition(graph)
-    partition.init(True)
-
-    #uncompressedCodeLength = partition.code_length
-
+    partition.init()
     parition_list = list()
     partition.first_pass(iteration)
     new_codelength = partition.code_length
@@ -383,15 +318,12 @@ def iteration_loop(graph):
     current_graph = partition.second_pass(best_partition)
     partition.graph = current_graph
     partition.set_up(org_mods)
-    #partition.init(True)
-
     iteration += 1
 
     while True:
         partition.first_pass(iteration)
         new_codelength = partition.code_length
         if ( (codelength - new_codelength) < EPSILON_REDUCED) or (new_codelength < 1.0):
-            ret_code = codelength
             break
         best_partition = partition.renumber_modules(partition.modules)
         parition_list.append(best_partition)
@@ -400,9 +332,8 @@ def iteration_loop(graph):
         current_graph = partition.second_pass(best_partition)
         partition.graph = current_graph
         partition.set_up(org_mods)
-        #partition.init(True)
-
         iteration += 1
+
     return parition_list[:], partition
 
 
@@ -412,23 +343,26 @@ def infomap(graph):
     return handle.generate_module_mapping(module_hierachy, len(module_hierachy)-1)
 
 def main():
-    #test prep
     #graph = btg.build_graph()
-    import networkx as nx
     #graph = nx.karate_club_graph()
     #graph = nx.read_gpickle("/Users/florian/Desktop/testgraph/testgraph")
 
+    print "loading"
     #fh=open("/Users/florian/Desktop/com-amazon.ungraph.txt")
     #graph = nx.read_edgelist(fh, nodetype=int)
+    print "done loading"
 
     graph = girvan(4)
 
+    print "calculating"
     # call to main algorithm method
     mapping = infomap(graph)
+    print "done calculating"
 
     print mapping
-    nx.set_node_attributes(graph, 'finalmodule', mapping)
-    drawNetwork(graph)
+    return mapping
+    #nx.set_node_attributes(graph, 'finalmodule', mapping)
+    #drawNetwork(graph)
 
     #print "Final Codelength: " + str(codelength)
     #print "Compressed by: " + str((100.0*(1.0-codelength/uncompressedCodeLength)))
