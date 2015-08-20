@@ -238,29 +238,18 @@ class Partition(object):
 
 
     def second_pass(self, current_partition):
-        # aggregated_graph = nx.Graph()
-        #
-        # # The new graph consists of as many "supernodes" as there are partitions
-        # aggregated_graph.add_nodes_from(set(self.modules.values()))
-        # # make edges between communites, bundle more edges between nodes in weight attribute
-        # edge_list=[(self.modules[node1], self.modules[node2], attr.get('weight', 1) ) for node1, node2, attr in self.graph.edges(data=True)]
-        # sorted_edge_list = sorted(edge_list)
-        # sum_z = lambda tuples: sum(t[2] for t in tuples)
-        # weighted_edge_list = [(k[0], k[1], sum_z(g)) for k, g in groupby(sorted_edge_list, lambda t: (t[0], t[1]))]
-        # aggregated_graph.add_weighted_edges_from(weighted_edge_list)
-        #
-        # return aggregated_graph
+        aggregated_graph = nx.Graph()
 
-        ret = nx.Graph()
-        ret.add_nodes_from(current_partition.values())
+        # The new graph consists of as many "supernodes" as there are partitions
+        aggregated_graph.add_nodes_from(set(current_partition.values()))
+        # make edges between communites, bundle more edges between nodes in weight attribute
+        edge_list=[(current_partition[node1], current_partition[node2], attr.get('weight', 1) ) for node1, node2, attr in self.graph.edges(data=True)]
+        sorted_edge_list = sorted(edge_list)
+        sum_z = lambda tuples: sum(t[2] for t in tuples)
+        weighted_edge_list = [(k[0], k[1], sum_z(g)) for k, g in groupby(sorted_edge_list, lambda t: (t[0], t[1]))]
+        aggregated_graph.add_weighted_edges_from(weighted_edge_list)
 
-        for node1, node2, datas in self.graph.edges_iter(data = True) :
-            weight = datas.get("weight", 1)
-            com1 = current_partition[node1]
-            com2 = current_partition[node2]
-            w_prec = ret.get_edge_data(com1, com2, {"weight":0}).get("weight", 1)
-            ret.add_edge(com1, com2, weight = w_prec + weight)
-        return ret
+        return aggregated_graph
 
 
     def set_up(self, org_mods):
@@ -344,12 +333,12 @@ def infomap(graph):
 
 def main():
     #graph = btg.build_graph()
-    #graph = nx.karate_club_graph()
+    graph = nx.karate_club_graph()
     #graph = nx.read_gpickle("/Users/florian/Desktop/testgraph/testgraph")
 
     print "loading"
-    fh=open("/Users/florian/Desktop/com-amazon.ungraph.txt")
-    graph = nx.read_edgelist(fh, nodetype=int)
+    #fh=open("/Users/florian/Desktop/com-amazon.ungraph.txt")
+    #graph = nx.read_edgelist(fh, nodetype=int)
     print "done loading"
 
     #graph = girvan(4)
@@ -359,10 +348,11 @@ def main():
     mapping = infomap(graph)
     print "done calculating"
 
+    nx.set_node_attributes(graph, 'finalmodule', mapping)
+    drawNetwork(graph)
     print mapping
     return mapping
-    #nx.set_node_attributes(graph, 'finalmodule', mapping)
-    #drawNetwork(graph)
+
 
     #print "Final Codelength: " + str(codelength)
     #print "Compressed by: " + str((100.0*(1.0-codelength/uncompressedCodeLength)))
