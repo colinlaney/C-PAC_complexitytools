@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 def compute_pwcgc(in_file, lag = 1):
     """
     Computes Pairwise Conditional Granger Causality from a 1D datafile and returns a np.array.
@@ -26,13 +28,6 @@ def compute_pwcgc(in_file, lag = 1):
     np.save(in_file[:-7]+'_pwcgc.npy', pwcgc_mat)
 
     return pwcgc_mat
-
-
-
-
-
-
-
 
 
 

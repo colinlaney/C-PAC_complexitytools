@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # THIS SCRIPT USES Nvar * Ntimepoints LIKE MATRIX STRUCTURES
 
 
@@ -18,9 +19,9 @@ def compute_avalanche(in_file, num_neighbours = 2):
 
     """
 
-    from CPAC.series_mod import cluster_detection 
-    from CPAC.series_mod import cluster_detection_mod2 
-    from CPAC.series_mod import avalanche_detection
+    from series_mod import cluster_detection 
+    from series_mod import cluster_detection_mod2 
+    from series_mod import avalanche_detection
 
     if num_neighbours == 1:
         # The algorithm saves the NIFTI file inside    
@@ -93,7 +94,7 @@ def cond_rm(in_file, seed_location):
     import numpy as np
     import os
     import nibabel as nb
-    from CPAC.series_mod import point_process  
+    from series_mod import point_process  
     # Treat fMRI image
     img = nb.load(in_file)
     #print img.shape
@@ -163,7 +164,7 @@ def cluster_detection(in_file):
     import numpy as np
     import os
     import nibabel as nb
-    from CPAC.series_mod import point_process  
+    from series_mod import point_process  
 
     # Treat fMRI image
     img = nb.load(in_file)
@@ -254,7 +255,7 @@ def cluster_detection_mod2(in_file):
     import numpy as np
     import os
     import nibabel as nb
-    from CPAC.series_mod import point_process  
+    from series_mod import point_process  
 
     # Treat fMRI image
     img = nb.load(in_file)
@@ -365,7 +366,7 @@ def cluster_detection_mod2(in_file):
 #    import numpy as np
 #    import os
 #    import nibabel as nb
-#    from CPAC.series_mod import point_process  
+#    from series_mod import point_process  
 #
 #    # Treat fMRI image
 #    img = nb.load(in_file)

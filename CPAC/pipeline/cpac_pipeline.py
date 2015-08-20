@@ -18,7 +18,6 @@ import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
 from nipype import config
 from nipype import logging
-from CPAC import network_centrality
 from CPAC.network_centrality.utils import merge_lists
 logger = logging.getLogger('workflow')
 import pkg_resources as p
@@ -63,10 +62,7 @@ from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
-from CPAC.series_mod.series_mod import create_ROI_corr, \
-                create_ROI_pcorr, \
-                create_MI, \
-                create_TE
+from CPAC.series_mod.series_mod import create_nltsa
 import zlib
 import linecache
 import csv

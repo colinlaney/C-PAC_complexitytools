@@ -32,7 +32,7 @@ from criticality import compute_avalanche, \
             cluster_detection_mod2, \
             avalanche_detection
 
-__all__ = ['create_nltsa','calc_nltsa','compute_corr','compute_pcorr', \
+__all__ = ['create_nltsa','calc_nltsa','create_avalanche','compute_corr','compute_pcorr', \
             'gen_roi_timeseries','gen_voxel_timeseries','corr', \
             'partial_corr','compute_MI','transform', \
             'entropy','mutual_information','cond_entropy', \

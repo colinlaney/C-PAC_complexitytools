@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # THIS SCRIPT USES Nvar * Ntimepoints like MATRIX STRUCTURES
 
 def compute_corr(in_file):

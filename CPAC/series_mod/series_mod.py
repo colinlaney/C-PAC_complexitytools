@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
@@ -13,6 +14,7 @@ def create_nltsa(wf_name = 'nltsa_wf'):
     nltsa.inputs.inputspec.measures = \
     measures
     """    
+    from CPAC.series_mod import calc_nltsa
     
      # Instantiate workflow with input name
     nltsa = pe.Workflow(wf_name)
@@ -123,7 +125,7 @@ def create_avalanche(wf_name = 'avalanche_wf'):
     >>> wf.inputs.inputspec.in_file = '/home/data/Project/subject/func/rest_res_filt.nii.gz'
     >>> wf.run()
     """    
-    from CPAC.series_mod.criticality import compute_avalanche      
+    from CPAC.series_mod import compute_avalanche      
     # Instantiate workflow with input name
     avalanche = pe.Workflow(wf_name)
     
