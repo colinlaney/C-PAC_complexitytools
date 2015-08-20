@@ -325,7 +325,7 @@ def main(graph=None):
         print "No input graph provided, running infomap with Zachary's Karate Club"
 
     partition   = Infomap(graph)
-    print "Detecting modules by minimizing code length"
+    print "Detecting modules by minimizing codelength"
     dendro      = module_hierachy(graph)
     best_module = get_best_module(graph)
     final = Infomap.final_codelength
