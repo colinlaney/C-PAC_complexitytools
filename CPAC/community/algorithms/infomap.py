@@ -348,11 +348,11 @@ def main():
     #graph = nx.read_gpickle("/Users/florian/Desktop/testgraph/testgraph")
 
     print "loading"
-    #fh=open("/Users/florian/Desktop/com-amazon.ungraph.txt")
-    #graph = nx.read_edgelist(fh, nodetype=int)
+    fh=open("/Users/florian/Desktop/com-amazon.ungraph.txt")
+    graph = nx.read_edgelist(fh, nodetype=int)
     print "done loading"
 
-    graph = girvan(4)
+    #graph = girvan(4)
 
     print "calculating"
     # call to main algorithm method

@@ -35,12 +35,29 @@ def girvan_graphs(zout) :
 class InfomapTest(unittest.TestCase):
 
     def test_girvan(self):
+        """
+        Generate ground truth graph with 4 communities.
+        Test that infomap detects them correctly
+        """
         graph = girvan_graphs(4)
         modules = infomap.infomap(graph)
 
         for node, module in modules.items():
             self.assertEqual(module, modules[node%4])
-        print modules
+
+    def test_nodes(self):
+        """
+        Test that the new graph generated in the the second phase has the communities as nodes
+        """
+        g = nx.erdos_renyi_graph(50, 0.1)
+        part = dict([])
+        for node in g.nodes() :
+            part[node] = node % 5
+        #set up mock object
+        info_partition = infomap.Partition(g)
+        info_partition.modules = part
+
+        self.assertSetEqual(set(part.values()), set(info_partition.second_pass((info_partition.modules)).nodes()))
 
 
 if __name__ == '__main__':
