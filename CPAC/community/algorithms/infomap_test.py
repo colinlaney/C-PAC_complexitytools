@@ -1,8 +1,11 @@
 import unittest
 import networkx as nx
 import random
+import sys
 
 import infomap
+sys.path.append("../utils/")
+import buildTestGraph as btg
 
 def girvan_graphs(zout) :
     """
@@ -33,17 +36,6 @@ def girvan_graphs(zout) :
 
 
 class InfomapTest(unittest.TestCase):
-
-    def test_girvan(self):
-        """
-        Generate ground truth graph with 4 communities.
-        Test that infomap detects them correctly
-        """
-        graph = girvan_graphs(4)
-        modules = infomap.infomap(graph)
-
-        for node, module in modules.items():
-            self.assertEqual(module, modules[node%4])
 
     def test_communites_to_nodes(self):
         """
@@ -90,7 +82,36 @@ class InfomapTest(unittest.TestCase):
 
         self.assertDictEqual(result, expected_output)
 
+    def test_simple_graph(self):
+        graph  = btg.build_graph()
+        result = infomap.infomap(graph)
+        len_res = get_result_len(result.values())
 
+        self.assertEqual(len_res, 2)
+
+
+    def test_karate_club_graph(self):
+        graph   = nx.karate_club_graph()
+        result = infomap.infomap(graph)
+        len_res = get_result_len(result.values())
+
+        self.assertEqual(len_res, 3)
+
+
+    def test_girvan(self):
+        """
+        Generate ground truth graph with 4 communities.
+        Test that infomap detects them correctly
+        """
+        graph = girvan_graphs(4)
+        modules = infomap.infomap(graph)
+
+        for node, module in modules.items():
+            self.assertEqual(module, modules[node%4])
+
+
+def get_result_len(module_dict):
+    return len(set(module_dict))
 
 if __name__ == '__main__':
     unittest.main()

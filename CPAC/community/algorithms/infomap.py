@@ -3,20 +3,17 @@
 This module implements th infomap community detection method
 """
 
-__all__     = ["infomap", "module_hierachy"]
+__all__     = ["get_best_module", "module_hierachy"]
 __authors__ = """Florian Gesser (gesser.florian@googlemail.com)"""
 
-
 import math
-from itertools import groupby
+import random
 import sys
 
 import numpy as np
 import networkx as nx
-import random
 
-sys.path.append("/Users/florian/Data/Pending/GSOC/code/community_evaluation/mini_pipeline_community/")
-import buildTestGraph as btg
+from itertools import groupby
 
 
 EXIT            = 'EXIT'
@@ -24,17 +21,19 @@ EPSILON_REDUCED = 1.0e-10
 PASS_MAX        = sys.maxint #2^63 - 1 on 64bit machines
 
 
-class Partition(object):
-    """Represents a partition of the graph"""
+class Infomap(object):
+    final_codelength = 0.0
+    """
+
+    """
     def __init__(self, graph):
-        super(Partition, self).__init__()
+        super(Infomap, self).__init__()
         self.graph         = graph
 
         #pruge self loops
         loop_edges = self.graph.selfloop_edges()
         self.graph.remove_edges_from(loop_edges)
 
-        #self.modules = dict(zip(self.graph, range(self.graph.nodes()[0], graph.number_of_nodes())))
         self.modules = dict([])
 
         count = 0
@@ -274,9 +273,9 @@ class Partition(object):
         return aggregated_graph
 
 
-def module_hierarchy(graph):
+def infomap_iteration(graph):
     iteration =0
-    partition = Partition(graph)
+    partition = Infomap(graph)
     partition.init()
     parition_list = list()
     partition.first_pass(iteration)
@@ -293,6 +292,7 @@ def module_hierarchy(graph):
     while True:
         partition.first_pass(iteration)
         new_codelength = partition.code_length
+        Infomap.final_codelength = new_codelength
         if ( (codelength - new_codelength) < EPSILON_REDUCED) or (new_codelength < 1.0):
             break
         best_partition = partition.renumber_modules(partition.modules)
@@ -307,100 +307,30 @@ def module_hierarchy(graph):
     return parition_list[:], partition
 
 
-def infomap(graph):
-    module_hierachy, handle = module_hierarchy(graph)
+def number_of_modules_detected(hierarchy):
+    return len(set(hierarchy[-1].values()))
 
+def module_hierachy(graph):
+    module_hierachy, handle = infomap_iteration(graph)
+    return module_hierachy
+
+
+def get_best_module(graph):
+    module_hierachy, handle = infomap_iteration(graph)
     return handle.generate_module_mapping(module_hierachy, len(module_hierachy)-1)
 
-def main():
-    #graph = btg.build_graph()
-    graph = nx.karate_club_graph()
-    #graph = nx.read_gpickle("/Users/florian/Desktop/testgraph/testgraph")
+def main(graph=None):
+    if graph == None:
+        graph = nx.karate_club_graph()
+        print "No input graph provided, running infomap with Zachary's Karate Club"
 
-    print "loading"
-    #fh=open("/Users/florian/Desktop/com-amazon.ungraph.txt")
-    #graph = nx.read_edgelist(fh, nodetype=int)
-    print "done loading"
-
-    #graph = girvan(4)
-
-    print "calculating"
-    # call to main algorithm method
-    mapping = infomap(graph)
-    print "done calculating"
-
-    nx.set_node_attributes(graph, 'finalmodule', mapping)
-    drawNetwork(graph)
-    print mapping
-    return mapping
-
-
-    #print "Final Codelength: " + str(codelength)
-    #print "Compressed by: " + str((100.0*(1.0-codelength/uncompressedCodeLength)))
-    #print "Levels: " + str(len(graph_partition))
-    #print "Modules found last level: " + str(len(set(graph_partition[len(graph_partition)-2].values())))
-    #print "Modules found last level: " + str(len(set(graph_partition[len(graph_partition)-1].values())))
-
-def girvan(zout):
-    pout = float(zout)/96.
-    pin = (16.-pout*96.)/31.
-    graph = nx.Graph()
-    graph.add_nodes_from(range(128))
-    for x in graph.nodes() :
-        for y in graph.nodes() :
-            if x < y :
-                val = np.random.random()
-                if x % 4 == y % 4 :
-                    #nodes belong to the same community
-                    if val < pin :
-                        graph.add_edge(x, y)
-
-                else :
-                    if val < pout :
-                        graph.add_edge(x, y)
-    return graph
-
-
-def drawNetwork(G):
-    import matplotlib.pyplot as plt
-
-    import matplotlib.colors as colors
-    # position map
-    pos = nx.spring_layout(G)
-    # community ids
-    communities = [v for k,v in nx.get_node_attributes(G, 'finalmodule').items()]
-    numCommunities = max(communities) + 1
-    # color map from http://colorbrewer2.org/
-    cmapLight = colors.ListedColormap(['#a6cee3', '#b2df8a', '#fb9a99', '#fdbf6f', '#cab2d6'], 'indexed', numCommunities)
-    cmapDark = colors.ListedColormap(['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a'], 'indexed', numCommunities)
-
-    # edges
-    nx.draw_networkx_edges(G, pos)
-
-    # nodes
-    nodeCollection = nx.draw_networkx_nodes(G,
-        pos = pos,
-        node_color = communities,
-        cmap = cmapLight
-    )
-    # set node border color to the darker shade
-    darkColors = [cmapDark(v) for v in communities]
-    nodeCollection.set_edgecolor(darkColors)
-
-    # Print node labels separately instead
-    for n in G.nodes_iter():
-        plt.annotate(n,
-            xy = pos[n],
-            textcoords = 'offset points',
-            horizontalalignment = 'center',
-            verticalalignment = 'center',
-            xytext = [0, 2],
-            color = cmapDark(communities[n])
-        )
-
-    plt.axis('off')
-    # plt.savefig("karate.png")
-    plt.show()
+    partition   = Infomap(graph)
+    print "Detecting modules by minimizing code length"
+    dendro      = module_hierachy(graph)
+    best_module = get_best_module(graph)
+    final = Infomap.final_codelength
+    print "Done"
+    print "Final codelength: " + str(final) + " in " + str(number_of_modules_detected(dendro)) + " Modules"
 
 if __name__ == '__main__':
     main()
