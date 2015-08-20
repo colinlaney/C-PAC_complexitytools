@@ -1,6 +1,40 @@
 # THIS SCRIPT USES Nvar * Ntimepoints LIKE MATRIX STRUCTURES
 
 
+def compute_avalanche(in_file, num_neighbours = 2):
+    """
+    Computes Pairwise Conditional Granger Causality from a 1D datafile and returns a np.array.
+    
+    Parameters
+    ----------
+
+    in_file : NIFTI file 4D
+
+    Returns
+    -------
+
+    NIFTI file 4D with clusters (unique id for each one for each timestep)
+    NIFTI file 4D with avalanches (unique id for each one)
+
+    """
+
+    from CPAC.series_mod import cluster_detection 
+    from CPAC.series_mod import cluster_detection_mod2 
+    from CPAC.series_mod import avalanche_detection
+
+    if num_neighbours == 1:
+        # The algorithm saves the NIFTI file inside    
+        cluster_img = cluster_detection(in_file)     
+    elif num_neighbours == 2:
+        # The algorithm saves the NIFTI file inside    
+        cluster_img = cluster_detection_mod2(in_file)     
+    
+    # The algorithm saves the NIFTI file inside        
+    avalanche_img = avalanche_detection(cluster_img)
+
+    return avalanche_img
+
+
 def point_process(signal):
     """
     Point process analysis for a signal. Values equal to 1 when the original value 
@@ -59,7 +93,7 @@ def cond_rm(in_file, seed_location):
     import numpy as np
     import os
     import nibabel as nb
-    from CPAC.criticallity import point_process  
+    from CPAC.series_mod import point_process  
     # Treat fMRI image
     img = nb.load(in_file)
     #print img.shape
@@ -129,7 +163,7 @@ def cluster_detection(in_file):
     import numpy as np
     import os
     import nibabel as nb
-    from CPAC.criticallity import point_process  
+    from CPAC.series_mod import point_process  
 
     # Treat fMRI image
     img = nb.load(in_file)
@@ -220,7 +254,7 @@ def cluster_detection_mod2(in_file):
     import numpy as np
     import os
     import nibabel as nb
-    from CPAC.criticallity import point_process  
+    from CPAC.series_mod import point_process  
 
     # Treat fMRI image
     img = nb.load(in_file)
@@ -331,7 +365,7 @@ def cluster_detection_mod2(in_file):
 #    import numpy as np
 #    import os
 #    import nibabel as nb
-#    from CPAC.criticallity import point_process  
+#    from CPAC.series_mod import point_process  
 #
 #    # Treat fMRI image
 #    img = nb.load(in_file)
@@ -457,7 +491,7 @@ def cluster_detection_mod2(in_file):
 #    return cluster_graph_data_total  
     
   
-def avalanche_detec(cluster_file):
+def avalanche_detection(cluster_file):
     """
     Detects avalanches if a cluster file is given to it
     as described in http://journal.frontiersin.org/article/10.3389/fphys.2012.00015/abstract  

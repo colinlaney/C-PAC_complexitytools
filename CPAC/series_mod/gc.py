@@ -1,8 +1,39 @@
-# Original Matlab code: MVGC Toolbox. (C) Lionel Barnett and Anil K. Seth, 2012.
-# The MVGC Toolbox is free software: you can redistribute it
-# and/or modify it under the terms of the GNU General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
+def compute_pwcgc(in_file, lag = 1):
+    """
+    Computes Pairwise Conditional Granger Causality from a 1D datafile and returns a np.array.
+    
+    Parameters
+    ----------
+
+    in_file : 1D file
+
+    Returns
+    -------
+
+    data_array =  voxel(x,y,z) * voxel(x,y,z)
+
+    """
+
+    from CPAC.series_mod import pwcgc  
+    import numpy as np
+
+    # treatment 1D matrix
+    data = np.genfromtxt(in_file, skip_header = 1)[:,2:].T
+    # TEST IF THE STRUCTURE OF THE DATA IS ADECUATE. I DON'T KNOW HOW 1D FILES FROM CPAC ARE
+    
+    pwcgc_mat = pwcgc(data, lag)
+    
+    np.save(in_file[:-7]+'_pwcgc.npy', pwcgc_mat)
+
+    return pwcgc_mat
+
+
+
+
+
+
+
+
 
 
 def pwcgc(tsdata, p):
@@ -87,9 +118,7 @@ def pwcgc(tsdata, p):
 # <autocov_to_var.html |autocov_to_var|> |
 # <isbad.html |isbad|>
 #
-# (C) Lionel Barnett and Anil K. Seth, 2012. See file license.txt in
-# installation directory for licensing terms.
-#
+# (C) Lionel Barnett and Anil K. Seth, 2012.
 
 def mvgc(tsdata, x, y, p):
     
@@ -138,8 +167,7 @@ def tsdata_to_var(X, p):
 
     import numpy as np
     from matplotlib import pylab
-    # Local Variables: A, M, p1, E, XL, m, k, n, p, SIG, np, X, X0, N
-    # Function calls: reshape, NaN, nargout, tsdata_to_var, demean, zeros, size, strcmpi
+
     X = X[:,:,np.newaxis]
     [n, m, N] = X.shape
     N=1
@@ -147,8 +175,8 @@ def tsdata_to_var(X, p):
     p1 = p+1
     
     A = 0 #nan
-    SIG = 0#nan
-    E = 0#nan
+    SIG = 0 #nan
+    E = 0 #nan
     
     X = pylab.demean(X, axis=1)
     # no constant term
@@ -161,7 +189,7 @@ def tsdata_to_var(X, p):
     XL = np.zeros((n, p, M))
     for k in range(1, (p)+1): #if lag = 1, only 1 iteration
         XL[:,k-1,:] = np.reshape(X[:,p1-k-1:m-k,:], (n, M))
-        #% concatenate trials for k-lagged observations
+        # concatenate trials for k-lagged observations
         
     XL = np.reshape(XL, (n_p, M))
     # stack lags
