@@ -46,7 +46,7 @@ class InfomapTest(unittest.TestCase):
         for node in graph.nodes() :
             partition[node] = node % 5
         #set up mock object
-        info_partition = infomap.Partition(graph)
+        info_partition = infomap.Infomap(graph)
         info_partition.modules = partition
 
         self.assertSetEqual(set(partition.values()), set(info_partition.second_pass((info_partition.modules)).nodes()))
@@ -61,7 +61,7 @@ class InfomapTest(unittest.TestCase):
             partition[node] = node
 
         #set up mock object
-        info_partition = infomap.Partition(graph)
+        info_partition = infomap.Infomap(graph)
         info_partition.modules = partition
         generated_graph = info_partition.second_pass((info_partition.modules))
 
@@ -77,14 +77,14 @@ class InfomapTest(unittest.TestCase):
         expected_output = {0: 0, 1: 0, 2: 1, 3: 1, 4: 2, 5: 3, 6: 3, 7: 1, 8: 4, 9: 1, 10: 2, 11: 0, 12: 1, 13: 1, 14: 4, 15: 4, 16: 3, 17: 0, 18: 4, 19: 0, 20: 4, 21: 0, 22: 4, 23: 5, 24: 6, 25: 5, 26: 7, 27: 6, 28: 8, 29: 7, 30: 4, 31: 8, 32: 4, 33: 4}
         #set up mock object, we just need some graph here to create the instance
         graph = nx.karate_club_graph()
-        info_partition = infomap.Partition(graph)
+        info_partition = infomap.Infomap(graph)
         result = info_partition.renumber_modules(input)
 
         self.assertDictEqual(result, expected_output)
 
     def test_simple_graph(self):
         graph  = btg.build_graph()
-        result = infomap.infomap(graph)
+        result = infomap.get_best_module(graph)
         len_res = get_result_len(result.values())
 
         self.assertEqual(len_res, 2)
@@ -92,7 +92,7 @@ class InfomapTest(unittest.TestCase):
 
     def test_karate_club_graph(self):
         graph   = nx.karate_club_graph()
-        result = infomap.infomap(graph)
+        result = infomap.get_best_module(graph)
         len_res = get_result_len(result.values())
 
         self.assertEqual(len_res, 3)
@@ -104,7 +104,7 @@ class InfomapTest(unittest.TestCase):
         Test that infomap detects them correctly
         """
         graph = girvan_graphs(4)
-        modules = infomap.infomap(graph)
+        modules = infomap.get_best_module(graph)
 
         for node, module in modules.items():
             self.assertEqual(module, modules[node%4])

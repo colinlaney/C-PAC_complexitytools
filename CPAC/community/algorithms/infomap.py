@@ -319,6 +319,7 @@ def get_best_module(graph):
     module_hierachy, handle = infomap_iteration(graph)
     return handle.generate_module_mapping(module_hierachy, len(module_hierachy)-1)
 
+
 def main(graph=None):
     if graph == None:
         graph = nx.karate_club_graph()
