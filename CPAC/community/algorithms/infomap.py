@@ -2,9 +2,9 @@
 """
 This module implements th infomap community detection method
 """
-#__all__ = [""]
-__author__ = """Florian Gesser (gesser.florian@googlemail.com)"""
 
+__all__     = ["infomap", "module_hierachy"]
+__authors__ = """Florian Gesser (gesser.florian@googlemail.com)"""
 
 
 import math
@@ -13,12 +13,12 @@ import sys
 
 import numpy as np
 import networkx as nx
+import random
 
 sys.path.append("/Users/florian/Data/Pending/GSOC/code/community_evaluation/mini_pipeline_community/")
 import buildTestGraph as btg
 
 
-NODE_FREQUENCY  = 'NODE_FREQUENCY'
 EXIT            = 'EXIT'
 EPSILON_REDUCED = 1.0e-10
 PASS_MAX        = sys.maxint #2^63 - 1 on 64bit machines
@@ -57,7 +57,6 @@ class Partition(object):
 
         self.mod_exit    = dict([])
         self.mod_degree  = dict([])
-
 
 
     def init(self):
@@ -99,17 +98,48 @@ class Partition(object):
         self.exit = self.plogp(self.exitDegree)
         self.code_length = self.exit - 2.0 * self.exit_log_exit + self.degree_log_degree - self.nodeDegree_log_nodeDegree
 
+
+    def set_up(self, org_mods):
+        self.modules = dict([])
+
+        count = 0
+        for node in self.graph.nodes():
+            self.modules[node] = count
+            count += 1
+
+        indicies = list(set(org_mods.values()))
+        exit_degrees = {_:self.mod_exit[index] for _, index in enumerate(indicies)}
+        nx.set_node_attributes(self.graph, 'EXIT', exit_degrees)
+        self.mod_exit = dict([])
+        self.mod_degree = dict([])
+        self.exit_log_exit = 0.0
+        self.degree_log_degree = 0.0
+        self.exitDegree = 0.0
+
+        for index, node in enumerate(self.graph):
+            node_i_exit   = self.graph.node[node][EXIT]
+            node_i_degree = self.graph.degree(node, weight="weight")
+
+            self.exit_log_exit     += self.plogp(node_i_exit)
+            self.degree_log_degree += self.plogp(node_i_exit + node_i_degree)
+            self.exitDegree        += node_i_exit
+
+            self.mod_exit[index]    = node_i_exit
+            self.mod_degree[index]  = node_i_degree
+
+            self.exit = self.plogp(self.exitDegree)
+            self.code_length = self.exit - 2.0 * self.exit_log_exit + self.degree_log_degree - self.nodeDegree_log_nodeDegree
+
+
     def plogp(self, degree):
         """Entropy calculation"""
         p = self.inverseDegree * degree
         return p * math.log(p, 2) if degree > 0 else 0.0
 
+
     def get_random_permutation_of_nodes(self):
-        #nodes = self.graph.nodes()
-        #return np.random.permutation(nodes)
         nodes = self.graph.nodes()
         shuffeled_nodes = nodes[:]
-        import random
         random.shuffle(shuffeled_nodes)
         return shuffeled_nodes
 
@@ -124,6 +154,7 @@ class Partition(object):
 
         return weights
 
+
     def renumber_modules(self, current_modules):
         ret = current_modules.copy()
         module_list       = current_modules.values()
@@ -134,6 +165,13 @@ class Partition(object):
             ret[key] = mapping[current_modules[key]]
 
         return ret
+
+    def generate_module_mapping(self, module_hierarchy, level):
+        module_mapping = module_hierarchy[0].copy()
+        for index in range(1, level + 1):
+            for node, module in module_mapping.items():
+                module_mapping[node] = module_hierarchy[index][module]
+        return module_mapping
 
 
     def determine_best_new_module(self, iteration, stat):
@@ -209,7 +247,6 @@ class Partition(object):
                 stat['moved'] = True
 
 
-
     def first_pass(self, iteration):
         Nloops = 0
         stat = {'moved':True}
@@ -237,48 +274,7 @@ class Partition(object):
         return aggregated_graph
 
 
-    def set_up(self, org_mods):
-        self.modules = dict([])
-
-        count = 0
-        for node in self.graph.nodes():
-            self.modules[node] = count
-            count += 1
-
-        indicies = list(set(org_mods.values()))
-        exit_degrees = {_:self.mod_exit[index] for _, index in enumerate(indicies)}
-        nx.set_node_attributes(self.graph, 'EXIT', exit_degrees)
-        self.mod_exit = dict([])
-        self.mod_degree = dict([])
-        self.exit_log_exit = 0.0
-        self.degree_log_degree = 0.0
-        self.exitDegree = 0.0
-
-        for index, node in enumerate(self.graph):
-            node_i_exit   = self.graph.node[node][EXIT]
-            node_i_degree = self.graph.degree(node, weight="weight")
-
-            self.exit_log_exit     += self.plogp(node_i_exit)
-            self.degree_log_degree += self.plogp(node_i_exit + node_i_degree)
-            self.exitDegree        += node_i_exit
-
-            self.mod_exit[index]    = node_i_exit
-            self.mod_degree[index]  = node_i_degree
-
-            self.exit = self.plogp(self.exitDegree)
-            self.code_length = self.exit - 2.0 * self.exit_log_exit + self.degree_log_degree - self.nodeDegree_log_nodeDegree
-
-
-    def generate_module_mapping(self, module_hierarchy, level):
-        module_mapping = module_hierarchy[0].copy()
-        for index in range(1, level + 1):
-            for node, module in module_mapping.items():
-                module_mapping[node] = module_hierarchy[index][module]
-        return module_mapping
-
-
-
-def iteration_loop(graph):
+def module_hierarchy(graph):
     iteration =0
     partition = Partition(graph)
     partition.init()
@@ -312,7 +308,7 @@ def iteration_loop(graph):
 
 
 def infomap(graph):
-    module_hierachy, handle = iteration_loop(graph)
+    module_hierachy, handle = module_hierarchy(graph)
 
     return handle.generate_module_mapping(module_hierachy, len(module_hierachy)-1)
 
