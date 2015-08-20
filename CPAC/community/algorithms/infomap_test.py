@@ -49,16 +49,31 @@ class InfomapTest(unittest.TestCase):
         """
         Test that the new graph generated in the the second phase has the number of communities as nodes
         """
-        g = nx.erdos_renyi_graph(50, 0.1)
+        graph = nx.erdos_renyi_graph(50, 0.1)
         partition = dict([])
-        for node in g.nodes() :
+        for node in graph.nodes() :
             partition[node] = node % 5
         #set up mock object
-        info_partition = infomap.Partition(g)
+        info_partition = infomap.Partition(graph)
         info_partition.modules = partition
 
         self.assertSetEqual(set(partition.values()), set(info_partition.second_pass((info_partition.modules)).nodes()))
 
+    def test_isolated_nodes(self) :
+        """
+        Test that the generated graph is isomoprh for the pathological case when all nodes are isolated
+        """
+        graph = nx.erdos_renyi_graph(50, 0.1)
+        partition = dict([])
+        for node in graph.nodes() :
+            partition[node] = node
+
+        #set up mock object
+        info_partition = infomap.Partition(graph)
+        info_partition.modules = partition
+        generated_graph = info_partition.second_pass((info_partition.modules))
+
+        self.assertTrue(nx.is_isomorphic(graph, generated_graph))
 
 if __name__ == '__main__':
     unittest.main()
