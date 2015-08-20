@@ -125,30 +125,15 @@ class Partition(object):
         return weights
 
     def renumber_modules(self, current_modules):
-        # ret = current_modules.copy()
-        # vals = set(current_modules.values())
-        # mapping = dict(zip(vals,range(len(vals))))
-        #
-        # for key in current_modules.keys():
-        #     ret[key] = mapping[current_modules[key]]
-        #
-        # return ret
-        #
-        count = 0
         ret = current_modules.copy()
-        new_values = dict([])
+        module_list       = current_modules.values()
+        uniqe_module_list = sorted(set(module_list), key=lambda x: module_list.index(x))
+        mapping           = dict(zip(uniqe_module_list, range(len(uniqe_module_list))))
 
-        for key in current_modules.keys() :
-            value = current_modules[key]
-            new_value = new_values.get(value, -1)
-            if new_value == -1 :
-                new_values[value] = count
-                new_value = count
-                count = count + 1
-            ret[key] = new_value
+        for key in current_modules.keys():
+            ret[key] = mapping[current_modules[key]]
 
         return ret
-
 
 
     def determine_best_new_module(self, iteration, stat):
