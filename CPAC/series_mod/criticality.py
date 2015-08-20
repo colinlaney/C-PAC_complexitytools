@@ -138,7 +138,7 @@ def cond_rm(in_file, seed_location):
 
 
     # Reconstruct the 3D volume
-    cond_rm_img = os.path.join(os.getcwd(), 'cond_rm.nii.gz')
+    cond_rm_img = os.path.join(os.getcwd(), in_file[:-7]+'cond_rm.nii.gz')
     img_new.to_filename(cond_rm_img)
 
     return cond_rm_img
@@ -243,7 +243,7 @@ def cluster_detection(in_file):
         
         img_new = nb.Nifti1Image(cluster_graph_data_total, header=img.get_header(), affine=img.get_affine())
         # Reconstruct the 4D volume
-        cluster_graph_img = os.path.join(os.getcwd(), 'cluster_1N.nii.gz')
+        cluster_graph_img = os.path.join(os.getcwd(), in_file[:-7]+'cluster_1N.nii.gz')
         img_new.to_filename(cluster_graph_img)
                 
     return cluster_graph_img    
@@ -355,7 +355,7 @@ def cluster_detection_mod2(in_file):
         
         img_new = nb.Nifti1Image(cluster_graph_data_total, header=img.get_header(), affine=img.get_affine())
         # Reconstruct the 4D volume
-        cluster_graph_img = os.path.join(os.getcwd(), 'cluster_2N.nii.gz')
+        cluster_graph_img = os.path.join(os.getcwd(), in_file[:-7]+'cluster_2N.nii.gz')
         img_new.to_filename(cluster_graph_img)   
         
     return cluster_graph_img
@@ -581,7 +581,7 @@ def avalanche_detection(cluster_file):
     
     img_new = nb.Nifti1Image(avalanche_id_total, header=img.get_header(), affine=img.get_affine())
     # Reconstruct the 4D volume
-    avalanche_img = os.path.join(os.getcwd(), 'avalanche.nii.gz')
+    avalanche_img = os.path.join(os.getcwd(), cluster_file[:-7]+'avalanche.nii.gz')
     img_new.to_filename(avalanche_img)  
     
     return avalanche_img    
