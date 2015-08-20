@@ -45,19 +45,19 @@ class InfomapTest(unittest.TestCase):
         for node, module in modules.items():
             self.assertEqual(module, modules[node%4])
 
-    def test_nodes(self):
+    def test_communites_to_nodes(self):
         """
-        Test that the new graph generated in the the second phase has the communities as nodes
+        Test that the new graph generated in the the second phase has the number of communities as nodes
         """
         g = nx.erdos_renyi_graph(50, 0.1)
-        part = dict([])
+        partition = dict([])
         for node in g.nodes() :
-            part[node] = node % 5
+            partition[node] = node % 5
         #set up mock object
         info_partition = infomap.Partition(g)
-        info_partition.modules = part
+        info_partition.modules = partition
 
-        self.assertSetEqual(set(part.values()), set(info_partition.second_pass((info_partition.modules)).nodes()))
+        self.assertSetEqual(set(partition.values()), set(info_partition.second_pass((info_partition.modules)).nodes()))
 
 
 if __name__ == '__main__':
