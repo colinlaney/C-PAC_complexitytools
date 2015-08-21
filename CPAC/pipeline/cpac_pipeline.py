@@ -62,7 +62,7 @@ from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
-from CPAC.series_mod.series_mod import create_nltsa
+from CPAC.series_mod.series_mod import create_nltsa, create_avalanche
 import zlib
 import linecache
 import csv
@@ -3296,6 +3296,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # resample the input functional file to template(roi/mask)
                 workflow.connect(node, out_file,
                                  resample_functional_to_template, 'in_file')
+                # not understanding what is going on here, i need help                 
                 workflow.connect(template_dataflow, 'outputspec.out_file',
                                  resample_functional_to_template, 'reference')
                 strat.update_resource_pool({'nltsa_outputs' : (merge_node, 'merged_list')})
@@ -3305,7 +3306,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 #logConnectionError('Network Centrality', num_strat, strat.get_resource_pool(), '0050')
                 raise
 
-    if 0 in c.runnltsa:
+    if 0 in c.run_nltsa:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
@@ -3321,7 +3322,52 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
     num_strat = 0
 
+    '''
+    Inserting AVALANCHE DETECTION
+    '''
 
+    new_strat_list = []
+    num_strat = 0
+
+
+    if 1 in c.run_avalanche:
+    # For each desired strategy
+        for strat in strat_list:
+    
+            avalanche = create_avalanche('nltsa_%d-%d' \
+                                 %(num_strat))                     
+                                 
+            node, out_file = strat.get_node_from_resource_pool('FMRI ')
+            # TO CALCULATE CRITICALLITY, fMRI needed!!
+            # Connect registered function input image to inputspec
+            # workflow.connect(resample_functional_to_template, 'out_file',
+            #                 nltsa, 'inputspec.subject')
+            node, out_file = strat.get_node_from_resource_pool('functional_mni')
+    
+            
+            workflow.connect(node, (resample_functional_to_template, out_file),
+                                 avalanche, 'inputspec.in_file')
+                  
+    
+#        try:# need help here   
+#        except:
+#            raise
+
+    if 0 in c.run_avalanche:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+    
+    num_strat += 1
+    
+    strat_list += new_strat_list
+    
+    
+    num_strat = 0
 
 
 

@@ -121,7 +121,7 @@ def create_avalanche(wf_name = 'avalanche_wf'):
   
     """  
     >>> from CPAC import series_mod
-    >>> wf = reho.create_avalanche()
+    >>> wf = series_mod.create_avalanche()
     >>> wf.inputs.inputspec.in_file = '/home/data/Project/subject/func/rest_res_filt.nii.gz'
     >>> wf.run()
     """    
