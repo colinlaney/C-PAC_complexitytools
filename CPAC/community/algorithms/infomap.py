@@ -20,11 +20,14 @@ EXIT            = 'EXIT'
 EPSILON_REDUCED = 1.0e-10
 PASS_MAX        = sys.maxint #2^63 - 1 on 64bit machines
 
-
+"""
+Class that abstracts and capsules the Infomap auxiliary datastructures 
+and provides the method interface to compute the Infomap algorithm on an undriected input graph.
+"""
 class Infomap(object):
     final_codelength = 0.0
-    """
-
+    """ 
+    Class initializer to setup proper standard values for the used datastructures
     """
     def __init__(self, graph):
         super(Infomap, self).__init__()
@@ -98,6 +101,24 @@ class Infomap(object):
         self.code_length = self.exit - 2.0 * self.exit_log_exit + self.degree_log_degree - self.nodeDegree_log_nodeDegree
 
 
+    """
+    This method gets called everytime after the second pass has run.
+    It ensures that the bookkeeping data structures are properly set up, 
+    as the Infomap algorithm computes on them
+
+    Parameters
+    ----------
+    org_mods : dict
+       a dictionary where the keys are the nodes and the values the associated modules
+
+    Side effect
+    -----------
+    Computes the proper values of the infomap parameter varoables by taking the weight of the graph into account
+
+    See Also
+    --------
+    __init__ and init do a similar setup. this method however takes into account the weight of the graph in its computation of the infomap parameters which is important after a new graph has been generated after each run of second phase.
+    """
     def set_up(self, org_mods):
         self.modules = dict([])
 
@@ -130,6 +151,21 @@ class Infomap(object):
             self.code_length = self.exit - 2.0 * self.exit_log_exit + self.degree_log_degree - self.nodeDegree_log_nodeDegree
 
 
+    """
+    Computes the entropy using the inverse node degree
+    in order to save division operations.
+    This is a core method that gets called a lot and is therfore a critical
+    path worth optimizing
+
+    Parameters
+    ----------
+    degree : the empirical degree of the node which is being used in the calculation
+
+    Returns
+    -------
+    The entropy H
+
+    """
     def plogp(self, degree):
         """Entropy calculation"""
         p = self.inverseDegree * degree
@@ -143,6 +179,21 @@ class Infomap(object):
         return shuffeled_nodes
 
 
+    """
+    Computes the link strengh of the adjacent nodes and their
+    corrosponding modules
+
+    Parameters
+    ----------
+    node : The node whos neighbourhood should be investgated in therm of link
+        in terms of link strenghts of the associated modules
+
+    Returns
+    -------
+    weights : A dictionary with the computed weights for each neighbor module
+
+
+    """
     def neighbourhood_link_strength(self, node):
         weights = {}
         for neighbor, datas in self.graph[node].items() :
@@ -154,6 +205,23 @@ class Infomap(object):
         return weights
 
 
+    """
+    Does the renumbering of the modules dictionary in order to prepare it
+    for the next iteration in the algorithm
+
+    Parameters
+    ----------
+    current_modules : the dictionary of the current node-module associations
+
+    Returns
+    -------
+    ret : the renumbered module dictionary
+
+    See Aslo
+    -------
+    test_renumbering_modules in the test_infomap for an illustrative example
+
+    """
     def renumber_modules(self, current_modules):
         ret = current_modules.copy()
         module_list       = current_modules.values()
@@ -165,6 +233,23 @@ class Infomap(object):
 
         return ret
 
+    """
+     Computes the final node->module association at the end of the algorithm 
+     across the generated levels/hierarchy
+
+     Parameters
+     ----------
+     module_hierarchy : a list of dictionaries
+        Each element of the list represenets one level of the computed modules (node->module association for that granularity)
+
+    level : an integer
+        the number of levels in the hierarchy
+
+    Returns
+    -------
+    Final mapping of nodes to modules
+
+    """   
     def generate_module_mapping(self, module_hierarchy, level):
         module_mapping = module_hierarchy[0].copy()
         for index in range(1, level + 1):
@@ -173,6 +258,28 @@ class Infomap(object):
         return module_mapping
 
 
+    """
+    The core of the greedy optimization step of the Infomap algorithm
+
+    For each node this method investigates all neighbours of the node and
+    calculates how much (if at all) the map eqation could be reduces if the
+    node would be moved in that associated neighbours module.
+
+    In the end the node gets moved to the neighbours module which gives the 
+    minimal description length possible.
+
+    See Also:
+    ---------
+
+    A detailed desciption of the procedure can of couese be found in the
+    actual Infomap papers [1] as well as in my detailed blog post 
+    "Theory, Mathematics, Implementation and Ground Truth" [2]
+
+    [1] Rosvall, M., Axelsson, D., & Bergstrom, C. T. (2010). The map equation. The European Physical Journal Special Topics 178(1), 13-23
+    [2] Theory, Mathematics, Implementation and Ground Truth, 
+    http://fgesser.io/theory-mathematics-implementation-and-ground-truth.html#theory-mathematics-implementation-and-ground-truth on fgesser.io
+
+    """
     def determine_best_new_module(self, iteration, stat):
         randomSequence = self.get_random_permutation_of_nodes()
         for index, curr_node in enumerate(self.graph):
@@ -246,6 +353,21 @@ class Infomap(object):
                 stat['moved'] = True
 
 
+    """
+    The "first psss" or "first phase" as it gets descripted in the
+    papers.
+
+    This phase encompases the iterated calling of "determine_best_new_module"
+    till a certain epsilon is reached and the description length can't be 
+    further reduced, wich in turn triggers the "second pass"
+
+
+    See Also
+    --------
+    second_pass : the next step in the iteration
+
+
+    """
     def first_pass(self, iteration):
         Nloops = 0
         stat = {'moved':True}
@@ -258,6 +380,29 @@ class Infomap(object):
                 stat['moved'] = False
 
 
+    """
+    The "second pass" or "second phase" as it gets described in the
+    papers.
+
+    Nodes belonging to the same community as detected in "first pass" are merged
+    into a single node.
+    The new graph is build up from these so called "super nodes"
+
+
+    Parameters
+    ----------
+
+    current_partition : the old partition (node->module associations) from which
+        the new graph will be build.
+
+    Returns
+    -------
+
+    aggregated_graph : The newly aggregated graph consisting of the computed "super nodes".
+        Edges between nodes who belong to the same module are turned into self loops of the
+        corresponding suoer node 
+
+    """
     def second_pass(self, current_partition):
         aggregated_graph = nx.Graph()
 
@@ -272,7 +417,25 @@ class Infomap(object):
 
         return aggregated_graph
 
+"""
+Main iteration that calls all the other sub methods of that the Infomap algorithm consists.
 
+The pattern is:
+
+init
+First Pass
+Second Pass
+
+Init
+First Pass
+Second Pass
+
+Init
+.
+.
+.
+
+"""
 def infomap_iteration(graph):
     iteration =0
     partition = Infomap(graph)
@@ -310,16 +473,48 @@ def infomap_iteration(graph):
 def number_of_modules_detected(hierarchy):
     return len(set(hierarchy[-1].values()))
 
+"""
+Computes a hierarchy/dendrogram of the detected modules
+
+Returns
+-------
+
+module_hierarchy : list of dictionaries
+
+"""
 def module_hierachy(graph):
     module_hierachy, handle = infomap_iteration(graph)
     return module_hierachy
 
 
+"""
+Computes the partition for which the Map Equation is minimal
+
+Returns
+-------
+
+Dictionary with final node->module associations
+
+
+"""
 def get_best_module(graph):
     module_hierachy, handle = infomap_iteration(graph)
     return handle.generate_module_mapping(module_hierachy, len(module_hierachy)-1)
 
+"""
+Main entry method that gets called if Infomap gets called as a module
+(e.g from the terminal)
 
+Parameters
+----------
+graph : the graph in which the communities should be detected.
+
+Returns
+-------
+- the result of the community detection, the best partition in modules for this graph
+- the achived minimal codelength
+
+"""
 def main(graph=None):
     if graph == None:
         graph = nx.karate_club_graph()
